@@ -97,23 +97,37 @@ parseSub s =
     effs <- mapM parseEff $ split es'
     return (ops, effs)
 
-run :: String -> Maybe [(Context, Web)]
-run prog = do
+run :: Web -> String -> Maybe [(Context, Web)]
+run web prog = do
   (ops, effs) <- parseSub prog
-  let web = smallWeb
   let cs = foldl' (step web) [[]] ops
   return $ map (\c -> foldl' stepEff (c, web) effs) cs
 
 showCtxt :: Context -> Context
 showCtxt = sortOn fst
 
-chk prog = do
+-- TODO print modifications
+testCase web prog = do
   putStrLn $ "\n" ++ prog
-  case run prog of
+  case run web prog of
     Just cs -> do
-      mapM_ (\(c, w) -> print (showCtxt c) >> print w ) $ cs
+      mapM_ (\(c, w) -> print (showCtxt c)) $ cs
     _ -> putStrLn "error"
 
+testEff prog = do
+  putStrLn $ "\n" ++ prog
+  chk' prog
+
+-- TODO
+--  - run sequences of programs
+--  - make the skein!
+--  - add unique selection
+chk prog =
+  case run smallWeb prog of
+    Just cs -> cs
+    _ -> error "error"
+
+chk' = mapM_ print . chk
 main = do
   let p1 = "a x b, b y c, c z d"
       p2 = "a id b, b id a"
@@ -123,8 +137,10 @@ main = do
       -- "elements of largest repo"
       p7 = "repo names a, count a, repo max a, repo names b, drop repo"
 
-  chk p1
-  chk p2
-  chk p5
-  chk p6
-  chk p7
+  testCase testWeb p1
+  testCase testWeb p2
+  testCase testWeb p5
+  testCase testWeb p6
+  testCase testWeb p7
+
+  testEff "a x b ~ new c, c to a, c to b"
