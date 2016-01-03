@@ -1,6 +1,44 @@
--- todo
--- mutation / rule RHS
--- validate queries
+-- TODO
+-- priority:
+-- (for all)
+--  - real parser
+--  - arithmetic
+--    - doable with named rules
+--
+--  - need to mark rule arguments with signs?
+--    - special case arithmetic for now
+--      - (must have two arguments already bound)
+--
+-- (for games)
+--  - unique selection
+--  - named rules
+--    - call rule on rhs?
+--    - lhs?
+--      - need to expose context
+--      - lhs creates context, rhs acts
+--      - have named rules and named patterns?
+--
+-- (for notes)
+--   - rules for editing a blob
+--   - rules for committing a blob
+--
+--  - unary edges?
+--  - make the skein!
+--  - add unique selection
+--    ! what does this mean?
+--    - think it requires marking and edge and one of the nodes
+--    like: x !pred !val
+--    means, for each x, take a single val that satisfies pred
+--      can't get by with just !pred (because symmetry)
+--                          or !val  (because the rest of the query
+--                                    might have multiple solutions)
+--    but we could notate it as (!x pred val) and understand it to apply
+--    to current clause
+--
+-- idea: more specific rule ~ smaller pattern graph
+--   count nodes or just edges?
+
+
 module Main where
 
 import qualified Data.Map as M
@@ -11,7 +49,11 @@ import Data.List
 import Data.Function (on)
 import Control.Arrow (second)
 
+import Types
 import Interpreter
+
+import Parse
+import Parser
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
@@ -32,76 +74,28 @@ smallWeb = toWeb 3 $
   [ ("x", [(0, 2), (1, 2)])
   ]
 
-mp a@(Just _) _ = a
-mp _ a@(Just _) = a
-mp _ _ = Nothing
+-- 0 is the element of a unit object
+emptyWeb = Web 1 M.empty
 
--- TODO use a parser
-parseP :: String -> Maybe Pattern
-parseP str | [".", p, "."] <- words str = Just $ P NHole p NHole
-parseP str | [".", p, t] <- words str = Just $ P NHole p (NSym t)
-parseP str | [s, p, "."] <- words str = Just $ P (NSym s) p NHole
-parseP str | [s, p, t] <- words str = Just $ P (NSym s) p (NSym t)
-parseP _ = Nothing
+runRule :: Web -> Rule -> [(Context, Web)]
+runRule web (ops, effs) = 
+  let matches = foldl' (step web) [[]] ops
+  in map (\c -> foldl' stepEff (c, web) effs) matches
 
-parseF :: String -> Maybe Fold
-parseF s  | ["fold", p] <- words s = Just (Fold p)
-parseF _ = Nothing
+runFirst :: Web -> [Rule] -> Web
+runFirst web rules =
+  case concatMap (runRule web) rules of
+    [] -> web
+    (_, w) : _ -> w
 
-parseC :: String -> Maybe Symbol
-parseC s  | ["count", p] <- words s = Just p
-parseC _ = Nothing
-
-parseM :: String -> Maybe Max
-parseM s | [base, "max", v] <- words s = Just (Max base v)
-parseM _ = Nothing
-
-parseD :: String -> Maybe Symbol
-parseD s | ["drop", v] <- words s = Just v
-parseD _ = Nothing
-
-parseOp :: String -> Maybe Operation
-parseOp s =
-  -- `mp` (OF <$> parseF s)
-  (OC <$> parseC s)
-  `mp` (OM <$> parseM s)
-  `mp` (OD <$> parseD s)
-  `mp` (OP <$> parseP s)
-
-parseDel s | ["del", v] <- words s = Just (EDel v)
-parseDel _ = Nothing
-
-parseEdge s | [s, p, t] <- words s = Just (EAssert s p t)
-parseEdge _ = Nothing
-
-parseFresh s | ["new", o] <- words s = Just (EFresh o)
-parseFresh _ = Nothing
-
-parseEff :: String -> Maybe Effect
-parseEff s =
-  (parseFresh s)
-  `mp` (parseEdge s)
-  `mp` (parseDel s)
-
-split = lines . map fix
-  where
-    fix ',' = '\n'
-    fix x = x
-
-parseSub :: String -> Maybe ([Operation], [Effect])
-parseSub s =
-  let (os, es) = span (/= '~') s
-      es' = if null es then es else tail es
-  in do
-    ops <- mapM parseOp $ split os
-    effs <- mapM parseEff $ split es'
-    return (ops, effs)
+toMaybe (Right v) = Just v
+toMaybe (Left _) = Nothing
 
 run :: Web -> String -> Maybe [(Context, Web)]
 run web prog = do
-  (ops, effs) <- parseSub prog
-  let cs = foldl' (step web) [[]] ops
-  return $ map (\c -> foldl' stepEff (c, web) effs) cs
+  --rule <- parseRule prog
+  (rule, "") <- toMaybe $ runParser prule prog
+  return $ runRule web rule
 
 showCtxt :: Context -> Context
 showCtxt = sortOn fst
@@ -111,17 +105,13 @@ testCase web prog = do
   putStrLn $ "\n" ++ prog
   case run web prog of
     Just cs -> do
-      mapM_ (\(c, w) -> print (showCtxt c)) $ cs
+      mapM_ (\(c, _) -> print (showCtxt c)) $ cs
     _ -> putStrLn "error"
 
 testEff prog = do
   putStrLn $ "\n" ++ prog
   chk' prog
 
--- TODO
---  - run sequences of programs
---  - make the skein!
---  - add unique selection
 chk prog =
   case run smallWeb prog of
     Just cs -> cs
