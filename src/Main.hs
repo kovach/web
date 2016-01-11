@@ -38,7 +38,6 @@
 -- idea: more specific rule ~ smaller pattern graph
 --   count nodes or just edges?
 
-
 module Main where
 
 import qualified Data.Map as M
@@ -54,6 +53,8 @@ import Interpreter
 
 import Parse
 import Parser
+
+import Rewrite
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
@@ -112,12 +113,12 @@ testEff prog = do
   putStrLn $ "\n" ++ prog
   chk' prog
 
-chk prog =
+runProg prog =
   case run smallWeb prog of
     Just cs -> cs
     _ -> error "error"
 
-chk' = mapM_ print . chk
+chk' = mapM_ print . runProg
 main = do
   let p1 = "a x b, b y c, c z d"
       p2 = "a id b, b id a"

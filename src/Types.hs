@@ -4,6 +4,7 @@ import Data.Maybe (fromMaybe, fromJust)
 
 -- Types
 type Symbol = String
+type Sym = Symbol
 
 data Ref = R Int
   deriving (Eq, Ord)
@@ -45,13 +46,17 @@ data Effect
     | EDel Symbol
   deriving (Show, Eq, Ord)
 
-type Rule = ([Operation], [Effect])
+type LHS = [Operation]
+type RHS = [Effect]
 
--- TODO
--- add syntax for named things
+type Rule = (LHS, RHS)
+
+data Application = App Symbol [Symbol]
+  deriving (Show, Eq, Ord)
+
 data Operation'
     = OOperation Operation
-    | ONamed Symbol [Symbol]
+    | ONamed Application
   deriving (Show, Eq, Ord)
 
 -- TODO
@@ -71,6 +76,8 @@ type Context = [(Symbol, Value)]
 type TContext = [(Symbol, VType)]
 
 type Var = Ref -> Either String (Context -> Context)
+
+type RuleContext = [(Symbol, (Rule', [Symbol]))]
 
 -- Stuff
 instance Show Ref where
@@ -113,3 +120,7 @@ instance Named Effect where
   nmap f (EFresh s) = EFresh (f s)
   nmap f (EAssert a p b) = EAssert (f a) p (f b)
   nmap f (EDel s) = EDel (f s)
+
+instance Named Operation' where
+  nmap f (OOperation op) = OOperation (nmap f op)
+  nmap f (ONamed (App n args)) = ONamed (App (f n) (map f args))

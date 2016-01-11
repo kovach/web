@@ -69,16 +69,13 @@ whitespace, whitespace1 :: Parser ()
 whitespace = return () <* (many $ anyc " \t\n")
 whitespace1 = return () <* (many1 $ anyc " \t\n")
 ws = whitespace1
+wsl = many $ anyc " \t"
 
 sepBy, sepBy1 :: Parser s -> Parser a -> Parser [a]
 sepBy1 sep p =
    (:) <$> p <*> ((sep *> sepBy1 sep p)  <|> return [])
 sepBy sep p = sepBy1 sep p <|> return []
 
-ck c s = 
-  case runParser c s of
-    Right (vals, str) -> do
-      mapM_ print vals
-      print str
-    Left str -> 
-      putStrLn $ str
+assert :: Bool -> String -> Parser ()
+assert bool str =
+  if bool then return () else ParseEither $ \_ -> Left str
