@@ -1,9 +1,11 @@
 -- TODO
--- priority:
 -- (for all)
---  - real parser
+--  - drop unbound names in rule
+--  - unique selection
+--  - rule checking
 --  - arithmetic
---    - doable with named rules
+--  - syntax for named application/prefix notation
+--    ? @
 --
 --  - need to mark rule arguments with signs?
 --    - special case arithmetic for now
@@ -12,28 +14,14 @@
 -- (for games)
 --  - unique selection
 --  - named rules
---    - call rule on rhs?
---    - lhs?
---      - need to expose context
---      - lhs creates context, rhs acts
---      - have named rules and named patterns?
+--    - need rhs rules too
 --
 -- (for notes)
 --   - rules for editing a blob
 --   - rules for committing a blob
 --
---  - unary edges?
---  - make the skein!
---  - add unique selection
---    ! what does this mean?
---    - think it requires marking and edge and one of the nodes
---    like: x !pred !val
---    means, for each x, take a single val that satisfies pred
---      can't get by with just !pred (because symmetry)
---                          or !val  (because the rest of the query
---                                    might have multiple solutions)
---    but we could notate it as (!x pred val) and understand it to apply
---    to current clause
+--  - unary predicates?
+--  - make a skein
 --
 -- idea: more specific rule ~ smaller pattern graph
 --   count nodes or just edges?
@@ -54,7 +42,7 @@ import Interpreter
 import Parse
 import Parser
 
-import Rewrite
+import Check
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
@@ -135,3 +123,13 @@ main = do
   testCase testWeb p7
 
   testEff "a x b ~ new c, c to a, c to b"
+
+-- whole file parsing
+chk = do
+  f <- readFile "prog.cog"
+  case runParser pfile f of
+    Right (Prog defs main, "") -> do
+      let main' = normalize defs main
+      print main'
+    Right (_, str) -> putStrLn str
+    Left str -> putStrLn str

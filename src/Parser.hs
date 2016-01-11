@@ -51,12 +51,6 @@ prule' = do
   r <- (tok (char '~') *> prhs) <|> (whitespace *> return [])
   return (l, r)
 
-data Program = Prog
-  { defs :: RuleContext
-  , main :: Rule'
-  }
-  deriving (Show, Eq, Ord)
-
 psig :: Parser (Symbol, [Symbol])
 psig = do
   name <- token <* ws
@@ -75,14 +69,3 @@ pfile = do
   main <- prule'
   defs <- many pdef
   return $ Prog defs main
-  
-chk = do
-  f <- readFile "prog.cog"
-  case runParser pfile f of
-    Right (Prog defs main, "") -> do
-      let main' = normalize defs main
-      print main
-      putStrLn "reduced"
-      print main'
-    Right (_, str) -> putStrLn str
-    Left str -> putStrLn str

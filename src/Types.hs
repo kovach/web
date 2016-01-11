@@ -79,6 +79,12 @@ type Var = Ref -> Either String (Context -> Context)
 
 type RuleContext = [(Symbol, (Rule', [Symbol]))]
 
+data Program = Prog
+  { p_defs :: RuleContext
+  , p_rule :: Rule'
+  }
+  deriving (Show, Eq, Ord)
+
 -- Stuff
 instance Show Ref where
   show (R i) = "#" ++ show i
