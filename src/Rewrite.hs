@@ -17,6 +17,7 @@ freshen cs s = go 0 s
 
 pnames NHole = []
 pnames (NSym s) = [s]
+pnames (NRoot s) = [s]
 
 names (OMatch (P l _ r)) = pnames l ++ pnames r
 names (OCount s) = [s]

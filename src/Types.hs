@@ -98,6 +98,7 @@ vint (VInt i) = i
 look k web = fromMaybe [] (M.lookup k web)
 look' k ctxt = fromJust (lookup k ctxt)
 
+-- TODO delete
 insertList :: Eq k => k -> v -> [(k, v)] -> [(k, v)]
 insertList k v [] = [(k, v)]
 insertList k v ((n, _) : rs) | n == k = (k, v) : rs
@@ -106,11 +107,13 @@ insertList k v (r : rs) = r : insertList k v rs
 addEdge :: Symbol -> Edge -> Web -> Web
 addEdge pred e (Web c env) = Web c (M.insertWith (++) pred [e] env)
 
+-- TODO make monadic?
 class Named a where
   nmap :: (Symbol -> Symbol) -> a -> a
 instance Named Node where
   nmap _ NHole = NHole
   nmap f (NSym s) = NSym (f s)
+  nmap f (NRoot s) = NSym (f s)
 instance Named Atom where
   nmap f (P l p r) = P (nmap f l) p (nmap f r)
 instance Named Max where

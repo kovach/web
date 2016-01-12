@@ -1,8 +1,8 @@
 module Interpreter where
 
 import qualified Data.Map as M
-import Data.Either (partitionEithers)
-import Data.List (foldl', sortOn, maximumBy)
+import Data.Either (rights)
+import Data.List (foldl', sortOn, maximumBy, partition)
 import Data.Function (on)
 import Control.Arrow (second)
 import Data.Char (isUpper, toLower)
@@ -19,44 +19,43 @@ namedVar name = \r -> Right $ \c -> (name, VRef r) : c
 toVar :: Node -> Context -> Var
 toVar NHole _ = holeVar
 toVar (NSym s) c | Just (VRef r) <- lookup s c = constraintVar r
+toVar (NRoot s) c | Just (VRef r) <- lookup s c = constraintVar r
 toVar (NSym s) c | Just _ <- lookup s c = \_ -> Left "non-atomic pattern"
+toVar (NRoot s) c | Just _ <- lookup s c = \_ -> Left "non-atomic pattern"
 toVar (NSym s) _ = namedVar s
+toVar (NRoot s) _ = namedVar s
 
 -- Interpreter
-update :: Var -> Var -> Context -> Edge
+update :: Node -> Node -> Context -> Edge
        -> Either String Context
 update v1 v2 c (s, t) = do
-  f1 <- v1 s
-  f2 <- v2 t
+  f1 <- toVar v1 c s
+  f2 <- toVar v2 c t
   return $ f2 . f1 $ c
 
-one :: [a] -> [a]
-one [] = []
-one (x : _) = [x]
+isRooted (NRoot base) (NSym prop) = Just (base, prop)
+isRooted (NSym prop) (NRoot base) = Just (base, prop)
+isRooted _ _ = Nothing
 
 getStep :: Atom -> Web -> Context -> [Context]
 getStep (P s pred t) web c =
-  let es = look (map toLower pred) $ edges web
-      v1 = toVar s c
-      v2 = toVar t c
-      (_, cs') = partitionEithers $ map (update v1 v2 c) es
-      -- TODO
-      cs = if isUpper (head pred) then one cs' else cs'
-  in cs
+  case isRooted s t of
+    Just (base, prop) -> map takeOne $ foldStep [prop] newContexts
+    Nothing -> newContexts
+  where
+    newContexts = rights $ map (update s t c) $ look pred $ edges web
+    -- NB this reverses the order of binding
+    -- in the case of (a pred !b)
+    takeOne (c, cs) = head cs ++ c
 
 foldStep :: [Symbol] -> [Context] -> [(Context, [Context])]
-foldStep names cs = M.toList $ foldl' fold M.empty cs
+foldStep names cs = M.toList $ foldr fold M.empty cs
   where
-    fold m c =
+    fold c m =
       let (key, ctx) = split c
       in M.insertWith (++) key [ctx] m
 
-    split c = split' c ([], [])
-    split' [] p = p
-    -- requires unique occurrence of names in context!
-    split' (b:bs) (l, r)
-      | fst b `elem` names = split' bs (l, b:r)
-    split' (b:bs) (l, r)   = split' bs (b:l, r)
+    split c = partition (not . (`elem` names) . fst) c
 
 countStep :: Symbol -> [Context] -> [Context]
 countStep s cs =
@@ -110,7 +109,7 @@ delNode ref (Web c e) =
 stepEff :: (Context, Web) -> Effect -> (Context, Web)
 stepEff (c, web) (EFresh name) =
   let (r, web') = fresh web
-  in (insertList name (VRef r) c, web')
+  in ((name, VRef r) : c, web')
 
 stepEff (c, web) (EAssert s p t) = (c, newEdge (s,p,t) c web)
 stepEff (c, web) (EDel name) | VRef r <- look' name c =

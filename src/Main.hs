@@ -1,7 +1,7 @@
 -- TODO
 -- (for all)
---  - drop unbound names in rule
 --  - unique selection
+--  - drop unbound names in rule
 --  - rule checking
 --  - arithmetic
 --  - syntax for named application/prefix notation
@@ -87,7 +87,7 @@ run web prog = do
   return $ runRule web rule
 
 showCtxt :: Context -> Context
-showCtxt = sortOn fst
+showCtxt = reverse
 
 -- TODO print modifications
 testCase web prog = do
@@ -115,12 +115,16 @@ main = do
       p6 = "repo names a, count a, repo max a"
       -- "elements of largest repo"
       p7 = "repo names a, count a, repo max a, repo names b, drop repo"
+      p8 = "!repo names a"
+      p8' = "repo names a"
 
   testCase testWeb p1
   testCase testWeb p2
   testCase testWeb p5
   testCase testWeb p6
   testCase testWeb p7
+  testCase testWeb p8'
+  testCase testWeb p8
 
   testEff "a x b ~ new c, c to a, c to b"
 
