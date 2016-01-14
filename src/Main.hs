@@ -1,6 +1,6 @@
 -- TODO
 -- (for all)
---  - unique selection
+--  - serialize/parse web
 --  - drop unbound names in rule
 --  - rule checking
 --  - arithmetic
@@ -29,20 +29,19 @@
 module Main where
 
 import qualified Data.Map as M
-import Data.Maybe (fromMaybe, fromJust)
-import Data.Either (partitionEithers)
 import Data.List (foldl', sortOn, maximumBy)
 import Data.List
 import Data.Function (on)
 import Control.Arrow (second)
 
 import Types
+import Web
 import Interpreter
 
 import Parse
 import Parser
 
-import Check
+import Rewrite
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
@@ -90,7 +89,8 @@ showCtxt :: Context -> Context
 showCtxt = reverse
 
 -- TODO print modifications
-testCase web prog = do
+testCase prog = do
+  let web = testWeb
   putStrLn $ "\n" ++ prog
   case run web prog of
     Just cs -> do
@@ -118,13 +118,13 @@ main = do
       p8 = "!repo names a"
       p8' = "repo names a"
 
-  testCase testWeb p1
-  testCase testWeb p2
-  testCase testWeb p5
-  testCase testWeb p6
-  testCase testWeb p7
-  testCase testWeb p8'
-  testCase testWeb p8
+  testCase p1
+  --testCase p2
+  testCase p5
+  testCase p6
+  testCase p7
+  --testCase p8'
+  testCase p8
 
   testEff "a x b ~ new c, c to a, c to b"
 
@@ -135,5 +135,5 @@ chk = do
     Right (Prog defs main, "") -> do
       let main' = normalize defs main
       print main'
-    Right (_, str) -> putStrLn str
+    Right (_, str) -> putStrLn $ "! unparsed:\n\n"++str
     Left str -> putStrLn str

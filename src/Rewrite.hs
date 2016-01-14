@@ -63,3 +63,11 @@ ostep rc (Fn c, _) (ONamed (App name args)) =
           case lookup s (zip ps args) of
             Nothing -> freshen (map fst context) s
             Just arg -> arg
+
+-- Main function
+normalize :: RuleContext -> Rule' -> Rule
+normalize rc (ops', effs) = (ops, effs)
+  where
+    (c, _) = mfix (mstep osplit (ostep rc)) (mempty, ops')
+    ops = snd $ c
+

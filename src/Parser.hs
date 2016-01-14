@@ -4,7 +4,6 @@ import Data.Char (isUpper, toLower)
 
 import Types
 import Parse
-import Check
 
 tok s = wsl *> s <* wsl
 tsep s p = sepBy (tok s) p
@@ -26,10 +25,10 @@ pdrop = string "drop" *> ws *> (ODrop <$> token)
 poperation' :: Parser Operation'
 poperation' = (ONamed <$> pnamed) <|> (OOperation <$> poperation)
 pnamed = do
+  char '@' <* wsl
   t <- token <* wsl
-  assert (isUpper (head t)) "Expecting upper char"
   args <- spaceSep token
-  return $ App (map toLower t) args
+  return $ App t args
 
 prhs :: Parser [Effect]
 prhs = tsep (char ',') peffect

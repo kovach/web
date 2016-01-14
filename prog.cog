@@ -1,8 +1,8 @@
-a to c, Fst b, Fst c
+. pick x, @ pair x a b
 
 fst f
   a fst f
 snd s
   a snd s
 pair a f s
-  Fst a f, Snd a s
+  @fst a f, @snd a s
