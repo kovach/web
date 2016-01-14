@@ -11,15 +11,15 @@ import Types
 
 holeVar :: Var
 holeVar = \_ -> Right id
-constraintVar :: Ref -> Var
+constraintVar :: Value -> Var
 constraintVar r = \r' -> if r == r' then Right id else Left "mismatch"
 namedVar :: Symbol -> Var
-namedVar name = \r -> Right $ \c -> (name, VRef r) : c
+namedVar name = \r -> Right $ \c -> (name, r) : c
 
 toVar :: Node -> Context -> Var
 toVar NHole _ = holeVar
-toVar (NSym s) c | Just (VRef r) <- lookup s c = constraintVar r
-toVar (NRoot s) c | Just (VRef r) <- lookup s c = constraintVar r
+toVar (NSym s) c | Just r <- lookup s c = constraintVar r
+toVar (NRoot s) c | Just r <- lookup s c = constraintVar r
 toVar (NSym s) c | Just _ <- lookup s c = \_ -> Left "non-atomic pattern"
 toVar (NRoot s) c | Just _ <- lookup s c = \_ -> Left "non-atomic pattern"
 toVar (NSym s) _ = namedVar s
@@ -89,20 +89,24 @@ step w cs (ODrop s) = dropStep s cs
 fresh :: Web -> (Ref, Web)
 fresh (Web c e) = (R c, Web (c+1) e)
 
-newEdge :: (Symbol, Symbol, Symbol) -> Context -> Web -> Web
+token2val :: Context -> Token -> Value
+token2val _ (TInt v) = VInt v
+token2val ctxt (TSym s) = look' s ctxt
+
+newEdge :: (Token, Symbol, Token) -> Context -> Web -> Web
 newEdge (s, pred, t) ctxt web =
   let
-    (VRef r1) = look' s ctxt
-    (VRef r2) = look' t ctxt
+    v1 = token2val ctxt s
+    v2 = token2val ctxt t
   in
-    addEdge pred (r1, r2) web
+    addEdge pred (v1, v2) web
 
 -- TODO should edges have uids?
 delNode :: Ref -> Web -> Web
 delNode ref (Web c e) =
     Web c (M.map (filter disjoint) e)
   where
-    disjoint (r1, r2) | r1 == ref || r2 == ref = False
+    disjoint (r1, r2) | r1 == VRef ref || r2 == VRef ref = False
     disjoint _ = True
 
 -- RHS operation

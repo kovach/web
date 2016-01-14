@@ -80,3 +80,10 @@ sepBy sep p = sepBy1 sep p <|> return []
 assert :: Bool -> String -> Parser ()
 assert bool str =
   if bool then return () else ParseEither $ \_ -> Left str
+
+int :: Parser Int
+int = ParseEither (list2either "expected integer" . reads)
+
+list2either :: e -> [a] -> Either e a
+list2either e [] = Left e
+list2either _ (x : _) = Right x

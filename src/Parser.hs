@@ -9,11 +9,14 @@ tok s = wsl *> s <* wsl
 tsep s p = sepBy (tok s) p
 spaceSep p = sepBy wsl p
 
+ptoken = (TSym <$> token) <|> (TInt <$> int)
+
 ppattern :: Parser [Operation]
 ppattern = tsep (char ',') poperation
 poperation = pcount <|> pmax <|> pdrop <|> patom 
 pnode =
   (NSym <$> token) <|>
+  (NInt <$> int) <|>
   (char '!' *> whitespace *> (NRoot <$> token)) <|>
   (char '.' *> return NHole)
 patom, pcount, pmax, pdrop :: Parser Operation
@@ -34,9 +37,9 @@ prhs :: Parser [Effect]
 prhs = tsep (char ',') peffect
 peffect = pfresh <|> pdel <|> passert
 pfresh, passert, pdel :: Parser Effect
-pfresh = string "new" *> ws *> (EFresh <$> token)
-passert = EAssert <$> (token <* ws) <*> (token <* ws) <*> token
-pdel = string "del" *> ws *> (EDel <$> token)
+pfresh = string "new" *> wsl *> (EFresh <$> token)
+passert = EAssert <$> (ptoken <* wsl) <*> (token <* wsl) <*> ptoken
+pdel = string "del" *> wsl *> (EDel <$> token)
 
 prule :: Parser Rule
 prule = do

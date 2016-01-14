@@ -1,11 +1,9 @@
 -- TODO
 -- (for all)
 --  - serialize/parse web
---  - drop unbound names in rule
+--  - fix . , drop unbound names in rule
 --  - rule checking
 --  - arithmetic
---  - syntax for named application/prefix notation
---    ? @
 --
 --  - need to mark rule arguments with signs?
 --    - special case arithmetic for now
@@ -45,17 +43,18 @@ import Rewrite
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
-toWeb c = Web c . M.fromList . map (second (map (\(a, b) -> (R a, R b))))
+toWeb c = Web c . M.fromList
+          . map (second (map (\(a, b) -> (VRef $ R a, VRef $ R b))))
 
 testWeb = toWeb 8 $
-  [ ("x", [(0, 2), (1, 2)])
-  , ("y", [(2, 3), (2, 4)])
-  , ("z", [(3, 5)])
-  , ("id", [(0, 1), (1, 0), (2, 3)])
-  , ("A", [(-1, 6)])
-  , ("B", [(-1, 7)])
-  , ("names", [ (6, 0), (6, 3)
-              , (7, 0), (7, 1), (7, 2)])
+  [ ("x",     [(0, 2), (1, 2)])
+  , ("y",     [(2, 3), (2, 4)])
+  , ("z",     [(3, 5)])
+  , ("id",    [(0, 1), (1, 0), (2, 3)])
+  , ("A",     [(-1, 6)])
+  , ("B",     [(-1, 7)])
+  , ("names", [(6, 0), (6, 3)
+              ,(7, 0), (7, 1), (7, 2)])
   ]
 
 smallWeb = toWeb 3 $
@@ -126,7 +125,7 @@ main = do
   --testCase p8'
   testCase p8
 
-  testEff "a x b ~ new c, c to a, c to b"
+  testEff "a x b ~ new c, c to a, c to 22"
 
 -- whole file parsing
 chk = do

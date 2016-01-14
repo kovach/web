@@ -9,14 +9,14 @@ type Sym = Symbol
 data Ref = R Int
   deriving (Eq, Ord)
 
-type Edge = (Ref, Ref)
+type Edge = (Value, Value)
 data Web = Web
   { count :: Int
   , edges :: M.Map Symbol [Edge]
   }
   deriving (Show, Eq, Ord)
 
-data Node = NRoot Symbol | NSym Symbol | NHole
+data Node = NRoot Symbol | NSym Symbol | NInt Int | NHole
   deriving (Show, Eq, Ord)
 
 data Atom = P Node Symbol Node
@@ -40,9 +40,12 @@ data Operation
     | OCount Symbol | OMax Max | ODrop Symbol
   deriving (Show, Eq, Ord)
 
+data Token = TSym Symbol | TInt Int
+  deriving (Show, Eq, Ord)
+
 data Effect
     = EFresh Symbol
-    | EAssert Symbol Symbol Symbol
+    | EAssert Token Symbol Token
     | EDel Symbol
   deriving (Show, Eq, Ord)
 
@@ -75,7 +78,7 @@ data VType = VTRef | VTInt
 type Context = [(Symbol, Value)]
 type TContext = [(Symbol, VType)]
 
-type Var = Ref -> Either String (Context -> Context)
+type Var = Value -> Either String (Context -> Context)
 
 type RuleContext = [(Symbol, (Rule', [Symbol]))]
 
@@ -113,7 +116,11 @@ class Named a where
 instance Named Node where
   nmap _ NHole = NHole
   nmap f (NSym s) = NSym (f s)
-  nmap f (NRoot s) = NSym (f s)
+  nmap f (NRoot s) = NRoot (f s)
+  nmap f (NInt v) = NInt v
+instance Named Token where
+  nmap f (TSym s) = TSym (f s)
+  nmap f (TInt v) = TInt v
 instance Named Atom where
   nmap f (P l p r) = P (nmap f l) p (nmap f r)
 instance Named Max where
@@ -127,7 +134,7 @@ instance Named Operation where
 
 instance Named Effect where
   nmap f (EFresh s) = EFresh (f s)
-  nmap f (EAssert a p b) = EAssert (f a) p (f b)
+  nmap f (EAssert a p b) = EAssert (nmap f a) p (nmap f b)
   nmap f (EDel s) = EDel (f s)
 
 instance Named Operation' where
