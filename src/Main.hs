@@ -1,28 +1,27 @@
 -- TODO
 -- (for all)
+--  - arithmetic
 --  - serialize/parse web
 --  - fix . , drop unbound names in rule
+--
 --  - rule checking
---  - arithmetic
 --
 --  - need to mark rule arguments with signs?
 --    - special case arithmetic for now
 --      - (must have two arguments already bound)
 --
 -- (for games)
---  - unique selection
---  - named rules
---    - need rhs rules too
+--  - need named rhs rules
 --
 -- (for notes)
 --   - rules for editing a blob
 --   - rules for committing a blob
 --
 --  - unary predicates?
---  - make a skein
+--  - skein
 --
 -- idea: more specific rule ~ smaller pattern graph
---   count nodes or just edges?
+--   count nodes or just edges? count binders
 
 module Main where
 
