@@ -17,7 +17,7 @@ dropComments = unlines . concatMap fixLine . lines
 
 psym = char '\'' *> (token) -- TODO allow empty symbol ' ?
 plit = (LInt <$> int) <|> (LSym <$> Sym <$> psym)
-ptoken = (TSym <$> token) <|> (TLit <$> plit)
+pexpr = (ESym <$> token) <|> (ELit <$> plit)
 
 ppattern :: Parser [Operation]
 ppattern = tsep (char ',') poperation
@@ -38,7 +38,7 @@ poperation' = (ONamed <$> pnamed) <|> (OOperation <$> poperation)
 pnamed = do
   char '@' <* wsl
   t <- token <* wsl
-  args <- spaceSep token
+  args <- spaceSep pexpr
   return $ App t args
 
 prhs :: Parser [Effect]
@@ -46,7 +46,7 @@ prhs = tsep (char ',') peffect
 peffect = pfresh <|> pdel <|> passert
 pfresh, passert, pdel :: Parser Effect
 pfresh = string "new" *> wsl *> (EFresh <$> token)
-passert = EAssert <$> (ptoken <* wsl) <*> (token <* wsl) <*> ptoken
+passert = EAssert <$> (pexpr <* wsl) <*> (token <* wsl) <*> pexpr
 pdel = string "del" *> wsl *> (EDel <$> token)
 
 prule :: Parser Rule

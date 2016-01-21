@@ -3,12 +3,13 @@ module Interpreter where
 import qualified Data.Map as M
 import Data.Either (rights)
 import Data.List (foldl', sortOn, maximumBy, partition)
+import Data.Maybe (mapMaybe)
 import Data.Function (on)
 import Control.Arrow (second)
 import Data.Char (isUpper, toLower)
 
 import Types
-import Extern
+import Extern (std_lib, matchExtern)
 
 holeVar :: Var
 holeVar = \_ -> Right id
@@ -84,16 +85,18 @@ step w cs (OMatch p) = concatMap (getStep p w) cs
 step w cs (OCount s) = countStep s cs
 step w cs (OMax m) = maxStep m cs
 step w cs (ODrop s) = dropStep s cs
+step w cs (OExtern (App sym args)) = concat $ mapMaybe (\c ->
+  matchExtern w c args (look' sym std_lib)) cs
 
 -- Mutations
 fresh :: Web -> (Ref, Web)
 fresh (Web c e) = (R c, Web (c+1) e)
 
-token2val :: Context -> Token -> Value
-token2val _ (TLit l) = VLit l
-token2val ctxt (TSym s) = look' s ctxt
+token2val :: Context -> Expr -> Value
+token2val _ (ELit l) = VLit l
+token2val ctxt (ESym s) = look' s ctxt
 
-newEdge :: (Token, Symbol, Token) -> Context -> Web -> Web
+newEdge :: (Expr, Symbol, Expr) -> Context -> Web -> Web
 newEdge (s, pred, t) ctxt web =
   let
     v1 = token2val ctxt s

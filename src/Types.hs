@@ -26,6 +26,11 @@ data Value
   | VLit Lit
   deriving (Eq, Ord)
 
+data Expr
+  = ESym Symbol
+  | ELit Lit
+  deriving (Show, Eq, Ord)
+
 type Edge = (Value, Value)
 
 data Web = Web
@@ -58,14 +63,12 @@ data Max = Max Symbol Symbol
 data Operation
     = OMatch Atom -- | OF Fold
     | OCount Symbol | OMax Max | ODrop Symbol
-  deriving (Show, Eq, Ord)
-
-data Token = TSym Symbol | TLit Lit
+    | OExtern Application
   deriving (Show, Eq, Ord)
 
 data Effect
     = EFresh Symbol
-    | EAssert Token Symbol Token
+    | EAssert Expr Symbol Expr
     | EDel Symbol
   deriving (Show, Eq, Ord)
 
@@ -74,7 +77,7 @@ type RHS = [Effect]
 
 type Rule = (LHS, RHS)
 
-data Application = App Symbol [Symbol]
+data Application = App Symbol [Expr]
   deriving (Show, Eq, Ord)
 
 data Operation'
@@ -136,9 +139,9 @@ instance Named Node where
   nmap f (NSym s) = NSym (f s)
   nmap f (NRoot s) = NRoot (f s)
   nmap f (NLit v) = NLit v
-instance Named Token where
-  nmap f (TSym s) = TSym (f s)
-  nmap f (TLit v) = TLit v
+instance Named Expr where
+  nmap f (ESym s) = ESym (f s)
+  nmap f (ELit v) = ELit v
 instance Named Atom where
   nmap f (Atom l p r) = Atom (nmap f l) p (nmap f r)
 instance Named Max where
@@ -149,6 +152,7 @@ instance Named Operation where
   nmap f (OCount s) = OCount (f s)
   nmap f (OMax m) = OMax (nmap f m)
   nmap f (ODrop s) = ODrop (f s)
+  nmap f (OExtern (App n args)) = OExtern (App (f n) (map (nmap f) args))
 
 instance Named Effect where
   nmap f (EFresh s) = EFresh (f s)
@@ -157,7 +161,7 @@ instance Named Effect where
 
 instance Named Operation' where
   nmap f (OOperation op) = OOperation (nmap f op)
-  nmap f (ONamed (App n args)) = ONamed (App (f n) (map f args))
+  nmap f (ONamed (App n args)) = ONamed (App (f n) (map (nmap f) args))
 
 
 -- TODO

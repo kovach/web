@@ -22,24 +22,26 @@ data ExtBind = ExtBind Extern [(Symbol, Symbol)]
 guard False = Nothing
 guard _ = return ()
 
-matchMode :: Context -> Mode -> [Symbol] -> Maybe Binding
+matchMode :: Context -> Mode -> [Expr] -> Maybe Binding
 matchMode ctxt mode args = do
     guard (length mode == length args)
     let pairs = zip args mode
     fmap rev $ foldM step ([], []) pairs
   where
     rev (a, b) = (reverse a, reverse b)
-    step :: Binding -> (Symbol, Sign) -> Maybe Binding
-    step (a, b) (sym, N) = do
+    step :: Binding -> (Expr, Sign) -> Maybe Binding
+    step (a, b) (ELit l, N) = return (VLit l : a, b)
+    step (a, b) (ESym sym, N) = do
       v <- lookup sym ctxt
       return (v:a, b)
-    step (a, b) (sym, P) = return (a, sym:b)
+    step (a, b) (ESym sym, P) = return (a, sym:b)
+    step (a, b) (_, P) = error "TODO"
 
-matchExtern :: Web -> Context -> [Symbol] -> Extern -> Maybe [Context]
+matchExtern :: Web -> Context -> [Expr] -> Extern -> Maybe [Context]
 matchExtern _ _ _ [] = Nothing
 matchExtern w ctxt args ((mode, fn) : es) =
   case matchMode ctxt mode args of
-    Just b -> Just $ fn w b
+    Just b -> Just $ map (++ ctxt) $ fn w b
     Nothing -> matchExtern w ctxt args es
 
 -- Actual definitions
@@ -52,3 +54,6 @@ plus :: Extern
 plus = [([N,N,P], plusNNPfn)
        ,([N,P,N], plusNPNfn)
        ,([P,N,N], plusPNNfn)]
+
+-- prelude
+std_lib = [("plus", plus)]
