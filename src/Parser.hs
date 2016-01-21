@@ -9,14 +9,22 @@ tok s = wsl *> s <* wsl
 tsep s p = sepBy (tok s) p
 spaceSep p = sepBy wsl p
 
-ptoken = (TSym <$> token) <|> (TInt <$> int)
+dropComments :: String -> String
+dropComments = unlines . concatMap fixLine . lines
+  where
+    fixLine ('#' : _) = []
+    fixLine x = [x]
+
+psym = char '\'' *> (token) -- TODO allow empty symbol ' ?
+plit = (LInt <$> int) <|> (LSym <$> Sym <$> psym)
+ptoken = (TSym <$> token) <|> (TLit <$> plit)
 
 ppattern :: Parser [Operation]
 ppattern = tsep (char ',') poperation
 poperation = pcount <|> pmax <|> pdrop <|> patom 
 pnode =
   (NSym <$> token) <|>
-  (NInt <$> int) <|>
+  (NLit <$> plit) <|>
   (char '!' *> whitespace *> (NRoot <$> token)) <|>
   (char '.' *> return NHole)
 patom, pcount, pmax, pdrop :: Parser Operation
@@ -71,3 +79,10 @@ pfile = do
   main <- prule'
   defs <- many pdef
   return $ Prog defs main
+
+parseFile :: String -> Either Error Program
+parseFile str =
+  case runParser pfile . dropComments $ str of
+    Left e -> Left e
+    Right (p, "") -> Right p
+    Right (_, str) -> Left $ "! unparsed input:\n" ++ str

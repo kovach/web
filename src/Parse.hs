@@ -64,7 +64,7 @@ num :: Parser Char
 num = anyc $ ['0'..'9']
 
 token :: Parser String
-token = (:) <$> alpha <*> many (num <|> alpha)
+token = (:) <$> alpha <*> many (num <|> alpha <|> char '-')
 
 whitespace, whitespace1 :: Parser ()
 whitespace = return () <* (many $ anyc " \t\n")

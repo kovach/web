@@ -20,10 +20,9 @@ toVar :: Node -> Context -> Var
 toVar NHole _ = holeVar
 toVar (NSym s) c | Just r <- lookup s c = constraintVar r
 toVar (NRoot s) c | Just r <- lookup s c = constraintVar r
-toVar (NSym s) c | Just _ <- lookup s c = \_ -> Left "non-atomic pattern"
-toVar (NRoot s) c | Just _ <- lookup s c = \_ -> Left "non-atomic pattern"
 toVar (NSym s) _ = namedVar s
 toVar (NRoot s) _ = namedVar s
+toVar (NLit lit) _ = constraintVar $ VLit lit
 
 -- Interpreter
 update :: Node -> Node -> Context -> Edge
@@ -60,7 +59,7 @@ foldStep names cs = M.toList $ foldr fold M.empty cs
 countStep :: Symbol -> [Context] -> [Context]
 countStep s cs =
   let groups = foldStep [s] cs
-      fold (c, vals) = (s, VInt (length vals)) : c
+      fold (c, vals) = (s, VLit (LInt (length vals))) : c
   in map fold groups
 
 maxStep :: Max -> [Context] -> [Context]
@@ -90,7 +89,7 @@ fresh :: Web -> (Ref, Web)
 fresh (Web c e) = (R c, Web (c+1) e)
 
 token2val :: Context -> Token -> Value
-token2val _ (TInt v) = VInt v
+token2val _ (TLit l) = VLit l
 token2val ctxt (TSym s) = look' s ctxt
 
 newEdge :: (Token, Symbol, Token) -> Context -> Web -> Web

@@ -1,6 +1,9 @@
 -- TODO
 -- (for all)
 --  - arithmetic
+--  - dot chaining
+--  - symbols
+--
 --  - serialize/parse web
 --  - fix . , drop unbound names in rule
 --
@@ -129,9 +132,7 @@ main = do
 -- whole file parsing
 chk = do
   f <- readFile "prog.cog"
-  case runParser pfile f of
-    Right (Prog defs main, "") -> do
-      let main' = normalize defs main
-      print main'
-    Right (_, str) -> putStrLn $ "! unparsed:\n\n"++str
+  case parseFile f of
+    Right (Prog defs main) ->
+      print $ normalize defs main
     Left str -> putStrLn str

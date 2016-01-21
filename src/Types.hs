@@ -4,19 +4,39 @@ import Data.Maybe (fromMaybe, fromJust)
 
 -- Types
 type Symbol = String
-type Sym = Symbol
+data Sym = Sym String
+  deriving (Eq, Ord)
+
+instance Show Sym where
+  show (Sym s) = '\'' : s
 
 data Ref = R Int
   deriving (Eq, Ord)
 
+data Lit
+  = LInt Int
+  | LSym Sym
+  deriving (Show, Eq, Ord)
+
+-- Node identifiers
+data Value
+  -- An entity, or "monad"
+  = VRef Ref
+  -- Everything below is "mathematical"
+  | VLit Lit
+  deriving (Eq, Ord)
+
 type Edge = (Value, Value)
+
 data Web = Web
   { count :: Int
   , edges :: M.Map Symbol [Edge]
   }
   deriving (Show, Eq, Ord)
 
-data Node = NRoot Symbol | NSym Symbol | NInt Int | NHole
+data Node = NRoot Symbol | NSym Symbol
+          | NLit Lit
+          | NHole
   deriving (Show, Eq, Ord)
 
 data Atom = P Node Symbol Node
@@ -40,7 +60,7 @@ data Operation
     | OCount Symbol | OMax Max | ODrop Symbol
   deriving (Show, Eq, Ord)
 
-data Token = TSym Symbol | TInt Int
+data Token = TSym Symbol | TLit Lit
   deriving (Show, Eq, Ord)
 
 data Effect
@@ -70,9 +90,6 @@ data Effect'
 
 type Rule' = ([Operation'], [Effect])
 
-data Value = VRef Ref | VInt Int
-  deriving (Eq, Ord)
-
 data VType = VTRef | VTInt
 
 type Context = [(Symbol, Value)]
@@ -94,9 +111,10 @@ instance Show Ref where
 
 instance Show Value where
   show (VRef r) = show r
-  show (VInt i) = show i
+  show (VLit (LInt i)) = show i
+  show (VLit (LSym s)) = show s
 
-vint (VInt i) = i
+vint (VLit (LInt i)) = i
 
 look k web = fromMaybe [] (M.lookup k web)
 look' k ctxt = fromJust (lookup k ctxt)
@@ -117,10 +135,10 @@ instance Named Node where
   nmap _ NHole = NHole
   nmap f (NSym s) = NSym (f s)
   nmap f (NRoot s) = NRoot (f s)
-  nmap f (NInt v) = NInt v
+  nmap f (NLit v) = NLit v
 instance Named Token where
   nmap f (TSym s) = TSym (f s)
-  nmap f (TInt v) = TInt v
+  nmap f (TLit v) = TLit v
 instance Named Atom where
   nmap f (P l p r) = P (nmap f l) p (nmap f r)
 instance Named Max where
