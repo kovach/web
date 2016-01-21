@@ -28,7 +28,7 @@ pnode =
   (char '!' *> whitespace *> (NRoot <$> token)) <|>
   (char '.' *> return NHole)
 patom, pcount, pmax, pdrop :: Parser Operation
-patom = OMatch <$> (P <$> (pnode <* ws) <*> (token <* ws) <*> pnode)
+patom = OMatch <$> (Atom <$> (pnode <* ws) <*> (token <* ws) <*> pnode)
 pcount = string "count" *> ws *> (OCount <$> token)
 pmax = OMax <$> (Max <$> (token <* ws) <* (string "max" <* ws) <*> token)
 pdrop = string "drop" *> ws *> (ODrop <$> token)

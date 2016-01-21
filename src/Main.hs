@@ -2,7 +2,6 @@
 -- (for all)
 --  - arithmetic
 --  - dot chaining
---  - symbols
 --
 --  - serialize/parse web
 --  - fix . , drop unbound names in rule
@@ -35,13 +34,14 @@ import Data.Function (on)
 import Control.Arrow (second)
 
 import Types
-import Web
 import Interpreter
 
-import Parse
+import Parse (runParser)
 import Parser
 
 import Rewrite
+
+import Extern -- TODO remove
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web

@@ -39,7 +39,7 @@ data Node = NRoot Symbol | NSym Symbol
           | NHole
   deriving (Show, Eq, Ord)
 
-data Atom = P Node Symbol Node
+data Atom = Atom Node Symbol Node
   deriving (Show, Eq, Ord)
 
 data Max = Max Symbol Symbol
@@ -140,7 +140,7 @@ instance Named Token where
   nmap f (TSym s) = TSym (f s)
   nmap f (TLit v) = TLit v
 instance Named Atom where
-  nmap f (P l p r) = P (nmap f l) p (nmap f r)
+  nmap f (Atom l p r) = Atom (nmap f l) p (nmap f r)
 instance Named Max where
   nmap f (Max a b) = Max (f a) (f b)
 
@@ -158,3 +158,10 @@ instance Named Effect where
 instance Named Operation' where
   nmap f (OOperation op) = OOperation (nmap f op)
   nmap f (ONamed (App n args)) = ONamed (App (f n) (map f args))
+
+
+-- TODO
+instance Num Value where
+  fromInteger = VLit . LInt . fromIntegral
+  (VLit (LInt l)) + (VLit (LInt r)) = VLit (LInt (l+r))
+  negate (VLit (LInt l)) = (VLit (LInt $ -l))

@@ -19,7 +19,7 @@ pnames NHole = []
 pnames (NSym s) = [s]
 pnames (NRoot s) = [s]
 
-names (OMatch (P l _ r)) = pnames l ++ pnames r
+names (OMatch (Atom l _ r)) = pnames l ++ pnames r
 names (OCount s) = [s]
 names (OMax (Max s1 s2)) = [s1, s2]
 names (ODrop s) = [s]

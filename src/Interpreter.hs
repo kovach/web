@@ -8,6 +8,7 @@ import Control.Arrow (second)
 import Data.Char (isUpper, toLower)
 
 import Types
+import Extern
 
 holeVar :: Var
 holeVar = \_ -> Right id
@@ -37,7 +38,7 @@ isRooted (NSym prop) (NRoot base) = Just (base, prop)
 isRooted _ _ = Nothing
 
 getStep :: Atom -> Web -> Context -> [Context]
-getStep (P s pred t) web c =
+getStep (Atom s pred t) web c =
   case isRooted s t of
     Just (base, prop) -> map takeOne $ foldStep [prop] newContexts
     Nothing -> newContexts
