@@ -13,17 +13,17 @@
 #   id fst x, id snd y, id sum z.
 
 text-editor elem text
-  ; elem type 'text-area, elem text text
-  ; elem type 'node-editor, elem text text
+  ; elem type 'text_area, elem text text
+  ; elem type 'node_editor, elem text text
 .
 
-key-press e key
+key_press e key
   e type 'key, e key key.
 
 # shift+enter on text element -> create new element labelled with text
-create-node e node
-  @key-press e 'enter, e mod 'shift, e elem ed,
-  ed type 'node-editor, ed text t, ed pos p
+create_node e node
+  @key_press e 'enter, e mod 'shift, e elem ed,
+  ed type 'node_editor, ed text t, ed pos p
     ~ new node, node <- t, node pos p, del e, del ed.
 
 # lol
@@ -48,12 +48,12 @@ contains elem pos
 # .
 
 # TODO handle multiple containing elems?
-e type 'mouseDown, 'root mode 'not-dragging, e pos p, @contains elem p
+e type 'mouseDown, 'root mode 'not_dragging, e pos p, @contains elem p
   ~ 'root mode 'dragging, 'root target elem, del e.
 
 e type 'mouseMove, 'root mode 'dragging, e pos p, 'root target elem
   ~ elem pos p, del e.
 
 e type 'mouseUp, 'root mode 'dragging, 'root target elem
-  ~ 'root mode 'not-dragging, del e.
+  ~ 'root mode 'not_dragging, del e.
 

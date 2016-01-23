@@ -1,16 +1,13 @@
 -- TODO
 -- (for all)
---  - arithmetic
+--  - >
 --  - dot chaining
+--  - clean up this file, make better webs
 --
 --  - serialize/parse web
 --  - fix . , drop unbound names in rule
 --
 --  - rule checking
---
---  - need to mark rule arguments with signs?
---    - special case arithmetic for now
---      - (must have two arguments already bound)
 --
 -- (for games)
 --  - need named rhs rules
@@ -19,11 +16,7 @@
 --   - rules for editing a blob
 --   - rules for committing a blob
 --
---  - unary predicates?
 --  - skein
---
--- idea: more specific rule ~ smaller pattern graph
---   count nodes or just edges? count binders
 
 module Main where
 
@@ -40,8 +33,6 @@ import Parse (runParser)
 import Parser
 
 import Rewrite
-
-import Extern -- TODO remove
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
@@ -108,6 +99,7 @@ runProg prog =
     _ -> error "error"
 
 chk' = mapM_ print . runProg
+
 main = do
   let p1 = "a x b, b y c, c z d"
       p2 = "a id b, b id a"
