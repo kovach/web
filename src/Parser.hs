@@ -34,11 +34,13 @@ pcount = string "count" *> ws *> (OCount <$> token)
 pmax = OMax <$> (Max <$> (token <* ws) <* (string "max" <* ws) <*> token)
 pdrop = string "drop" *> ws *> (ODrop <$> token)
 
+pfnname = token <|> ((:[]) <$> anyc "+*-/><")
+
 poperation' :: Parser Operation'
 poperation' = (ONamed <$> pnamed) <|> (OOperation <$> poperation)
 pnamed = do
   char '@' <* wsl
-  t <- token <* wsl
+  t <- pfnname <* wsl
   args <- spaceSep pexpr
   return $ App t args
 

@@ -62,5 +62,10 @@ plus = [([N,N,P], plusNNPfn)
        ,([N,P,N], plusNPNfn)
        ,([P,N,N], plusPNNfn)]
 
+gNN _ ([l, r], []) = if l > r then [[]] else []
+greater :: Extern
+greater = [([N,N], gNN)]
+
 -- prelude
-std_lib = [("plus", plus)]
+std_lib = [("+", plus)
+          ,(">", greater)]

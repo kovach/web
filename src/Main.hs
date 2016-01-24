@@ -1,11 +1,10 @@
 -- TODO
 -- (for all)
---  - >
 --  - dot chaining
 --  - clean up this file, make better webs
 --
---  - serialize/parse web
---  - fix . , drop unbound names in rule
+--  - serialize web
+--  - fix/remove . , drop unbound names in rule
 --
 --  - rule checking
 --
@@ -83,8 +82,13 @@ run web prog = do
 showCtxt :: Context -> Context
 showCtxt = reverse
 
+tc p = do
+  mweb <- loadWeb "test.web"
+  case mweb of
+    Right (web, "") -> testCase web p
+    Left err -> putStrLn $ "error loading web:\n" ++ err
+
 -- TODO print modifications
-testCase' = testCase testWeb
 testCase web prog = do
   putStrLn $ "\n" ++ prog
   case run web prog of
@@ -94,14 +98,9 @@ testCase web prog = do
 
 testEff prog = do
   putStrLn $ "\n" ++ prog
-  chk' prog
-
-runProg prog =
   case run smallWeb prog of
-    Just cs -> cs
+    Just cs -> mapM_ print cs
     _ -> error "error"
-
-chk' = mapM_ print . runProg
 
 main = do
   let p1 = "a x b, b y c, c z d"
@@ -114,8 +113,8 @@ main = do
       p8 = "!repo names a"
       p8' = "repo names a"
 
-      --p9 = "repo names a, repo names b, a size as, b size bs, @plus 2 3 c"
-      p9 = "'A names a, 'A names b, a size as, b size bs, @plus as bs c"
+      p9 = "'B names a, 'B names b, a size as, b size bs, @> bs as, @+ as bs sum"
+      p10 = "'A names a, 'B names b, a size s, b size s"
 
   mweb <- loadWeb "test.web"
   case mweb of
@@ -128,6 +127,7 @@ main = do
       --testCase p8'
       testCase web p8
       testCase web p9
+      testCase web p10
     Left err -> putStrLn $ "error loading web:\n" ++ err
 
   testEff "a x b ~ new c, c to a, c to 22"

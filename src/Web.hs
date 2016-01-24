@@ -19,7 +19,7 @@ webRow_ = (,) <$> arr_ <* ws <*> sepBy1 ws edge_
 
 -- sets count to be larger than any Ref present in web
 updateCount :: Web -> Web
-updateCount (Web count edges) = Web (maximum (concatMap to pairs)) edges
+updateCount (Web count edges) = Web (1 + maximum (concatMap to pairs)) edges
   where
     pairs = concat . map snd $ (M.toList edges)
     to (a, b) = to' a ++ to' b
