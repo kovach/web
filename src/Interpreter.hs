@@ -117,7 +117,6 @@ stepEff :: (Context, Web) -> Effect -> (Context, Web)
 stepEff (c, web) (EFresh name) =
   let (r, web') = fresh web
   in ((name, VRef r) : c, web')
-
 stepEff (c, web) (EAssert s p t) = (c, newEdge (s,p,t) c web)
 stepEff (c, web) (EDel name) | VRef r <- look' name c =
   (c, delNode r web)

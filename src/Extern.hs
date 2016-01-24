@@ -40,13 +40,13 @@ takeFirst f xs = case mapMaybe f xs of
     [] -> Nothing
     a : _ -> Just a
 
-matchSig web sig (mode, fn) = do
+matchSig sig (mode, fn) = do
   guard (signs sig == mode)
   return $ (partitionEithers sig, fn)
 
 matchExtern :: Web -> Context -> [Expr] -> Extern -> Maybe [Context]
 matchExtern w ctxt args cases = do
-  (b, fn) <- takeFirst (matchSig w (mkSig args ctxt)) cases
+  (b, fn) <- takeFirst (matchSig (mkSig args ctxt)) cases
   return $ map (++ ctxt) $ fn w b
 
 -- Actual definitions
@@ -60,8 +60,7 @@ plus :: Extern
 plus = [([N,N,P], plusNNPfn)
        ,([N,N,N], plusNNNfn)
        ,([N,P,N], plusNPNfn)
-       ,([P,N,N], plusPNNfn)
-       ]
+       ,([P,N,N], plusPNNfn)]
 
 -- prelude
 std_lib = [("plus", plus)]
