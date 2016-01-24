@@ -34,6 +34,8 @@ import Parser
 
 import Rewrite
 
+import Web
+
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
 toWeb c = Web c . M.fromList
@@ -74,15 +76,16 @@ toMaybe (Left _) = Nothing
 run :: Web -> String -> Maybe [(Context, Web)]
 run web prog = do
   --rule <- parseRule prog
-  (rule, "") <- toMaybe $ runParser prule prog
+  (rule', "") <- toMaybe $ runParser prule' prog
+  let rule = normalize [] rule'
   return $ runRule web rule
 
 showCtxt :: Context -> Context
 showCtxt = reverse
 
 -- TODO print modifications
-testCase prog = do
-  let web = testWeb
+testCase' = testCase testWeb
+testCase web prog = do
   putStrLn $ "\n" ++ prog
   case run web prog of
     Just cs -> do
@@ -111,19 +114,27 @@ main = do
       p8 = "!repo names a"
       p8' = "repo names a"
 
-  testCase p1
-  --testCase p2
-  testCase p5
-  testCase p6
-  testCase p7
-  --testCase p8'
-  testCase p8
+      --p9 = "repo names a, repo names b, a size as, b size bs, @plus 2 3 c"
+      p9 = "'A names a, 'A names b, a size as, b size bs, @plus as bs c"
+
+  mweb <- loadWeb "test.web"
+  case mweb of
+    Right (web, "") -> do
+      testCase web p1
+      --testCase p2
+      testCase web p5
+      testCase web p6
+      testCase web p7
+      --testCase p8'
+      testCase web p8
+      testCase web p9
+    Left err -> putStrLn $ "error loading web:\n" ++ err
 
   testEff "a x b ~ new c, c to a, c to 22"
 
 -- whole file parsing
 chk = do
-  f <- readFile "prog.cog"
+  f <- readFile "prog.res"
   case parseFile f of
     Right (Prog defs main) ->
       print $ normalize defs main

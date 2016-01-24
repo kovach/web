@@ -8,6 +8,7 @@ import Parse
 tok s = wsl *> s <* wsl
 tsep s p = sepBy (tok s) p
 spaceSep p = sepBy wsl p
+spaceSep1 p = sepBy1 wsl p
 
 dropComments :: String -> String
 dropComments = unlines . concatMap fixLine . lines
@@ -16,15 +17,15 @@ dropComments = unlines . concatMap fixLine . lines
     fixLine x = [x]
 
 psym = char '\'' *> (token) -- TODO allow empty symbol ' ?
-plit = (LInt <$> int) <|> (LSym <$> Sym <$> psym)
-pexpr = (ESym <$> token) <|> (ELit <$> plit)
+lit_ = (LInt <$> int_) <|> (LSym <$> Sym <$> psym)
+pexpr = (ESym <$> token) <|> (ELit <$> lit_)
 
 ppattern :: Parser [Operation]
 ppattern = tsep (char ',') poperation
 poperation = pcount <|> pmax <|> pdrop <|> patom 
 pnode =
   (NSym <$> token) <|>
-  (NLit <$> plit) <|>
+  (NLit <$> lit_) <|>
   (char '!' *> whitespace *> (NRoot <$> token)) <|>
   (char '.' *> return NHole)
 patom, pcount, pmax, pdrop :: Parser Operation

@@ -81,8 +81,8 @@ assert :: Bool -> String -> Parser ()
 assert bool str =
   if bool then return () else ParseEither $ \_ -> Left str
 
-int :: Parser Int
-int = ParseEither (list2either "expected integer" . reads)
+int_ :: Parser Int
+int_ = ParseEither (list2either "expected integer" . reads)
 
 list2either :: e -> [a] -> Either e a
 list2either e [] = Left e
