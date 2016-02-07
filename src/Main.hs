@@ -3,10 +3,11 @@
 --  - dot chaining
 --  - clean up this file, make better webs
 --
---  - serialize web
 --  - fix/remove . , drop unbound names in rule
+--    ? change to *
 --
 --  - rule checking
+--    ?
 --
 -- (for games)
 --  - need named rhs rules
@@ -16,6 +17,8 @@
 --   - rules for committing a blob
 --
 --  - skein
+--
+--  'linear' (?) rule can be asserted on RHS to create edges?
 
 module Main where
 

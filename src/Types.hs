@@ -3,6 +3,8 @@ import qualified Data.Map as M
 import Data.Maybe (fromMaybe, fromJust)
 
 -- Types
+
+-- a Symbol gets bound; a Sym is a sort of literal
 type Symbol = String
 data Sym = Sym String
   deriving (Eq, Ord)
@@ -22,7 +24,7 @@ data Lit
 data Value
   -- An entity, or "monad"
   = VRef Ref
-  -- Everything below is "mathematical"
+  -- Typed data
   | VLit Lit
   deriving (Eq, Ord)
 
@@ -67,8 +69,7 @@ data Operation
   deriving (Show, Eq, Ord)
 
 data Effect
-    = EFresh Symbol
-    | EAssert Expr Symbol Expr
+    = EAssert Expr Symbol Expr
     | EDel Symbol
   deriving (Show, Eq, Ord)
 
@@ -155,7 +156,7 @@ instance Named Operation where
   nmap f (OExtern (App n args)) = OExtern (App (f n) (map (nmap f) args))
 
 instance Named Effect where
-  nmap f (EFresh s) = EFresh (f s)
+  --nmap f (EFresh s) = EFresh (f s)
   nmap f (EAssert a p b) = EAssert (nmap f a) p (nmap f b)
   nmap f (EDel s) = EDel (f s)
 

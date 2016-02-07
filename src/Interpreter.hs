@@ -92,17 +92,22 @@ step w cs (OExtern (App sym args)) = concat $ mapMaybe (\c ->
 fresh :: Web -> (Ref, Web)
 fresh (Web c e) = (R c, Web (c+1) e)
 
-token2val :: Context -> Expr -> Value
-token2val _ (ELit l) = VLit l
-token2val ctxt (ESym s) = look' s ctxt
+token2val :: (Context, Web) -> Expr -> (Value, (Context, Web))
+token2val p (ELit l) = (VLit l, p)
+token2val p@(ctxt, w0) (ESym name) =
+  case lookup name ctxt of
+    Just v -> (v, p)
+    Nothing ->
+      let (r, w1) = fresh w0
+      in (VRef r, ((name, VRef r) : ctxt, w1))
 
-newEdge :: (Expr, Symbol, Expr) -> Context -> Web -> Web
-newEdge (s, pred, t) ctxt web =
+newEdge :: (Expr, Symbol, Expr) -> Context -> Web -> (Context, Web)
+newEdge (s, pred, t) c0 w0 =
   let
-    v1 = token2val ctxt s
-    v2 = token2val ctxt t
+    (v1, p1) = token2val (c0, w0) s
+    (v2, (c2, w2)) = token2val p1 t
   in
-    addEdge pred (v1, v2) web
+    (c2, addEdge pred (v1, v2) w2)
 
 -- TODO should edges have uids?
 delNode :: Ref -> Web -> Web
@@ -114,9 +119,9 @@ delNode ref (Web c e) =
 
 -- RHS operation
 stepEff :: (Context, Web) -> Effect -> (Context, Web)
-stepEff (c, web) (EFresh name) =
-  let (r, web') = fresh web
-  in ((name, VRef r) : c, web')
-stepEff (c, web) (EAssert s p t) = (c, newEdge (s,p,t) c web)
+--stepEff (c, web) (EFresh name) =
+--  let (r, web') = fresh web
+--  in ((name, VRef r) : c, web')
+stepEff (c, web) (EAssert s p t) = newEdge (s,p,t) c web
 stepEff (c, web) (EDel name) | VRef r <- look' name c =
   (c, delNode r web)

@@ -56,4 +56,3 @@ e type 'mouseMove, 'root mode 'dragging, e pos p, 'root target elem
 
 e type 'mouseUp, 'root mode 'dragging, 'root target elem
   ~ 'root mode 'not-dragging, del e.
-

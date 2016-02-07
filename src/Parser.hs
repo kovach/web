@@ -46,9 +46,9 @@ pnamed = do
 
 prhs :: Parser [Effect]
 prhs = tsep (char ',') peffect
-peffect = pfresh <|> pdel <|> passert
-pfresh, passert, pdel :: Parser Effect
-pfresh = string "new" *> wsl *> (EFresh <$> token)
+peffect = pdel <|> passert
+passert, pdel :: Parser Effect
+--pfresh = string "new" *> wsl *> (EFresh <$> token)
 passert = EAssert <$> (pexpr <* wsl) <*> (token <* wsl) <*> pexpr
 pdel = string "del" *> wsl *> (EDel <$> token)
 
