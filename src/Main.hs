@@ -19,7 +19,19 @@
 --  - skein
 --
 --  'linear' (?) rule can be asserted on RHS to create edges?
+--
+--  typed relations?
+--    control mutability
+--    e.g. + is closed, free relations are open, could encode 1-1 or 1-many
+--    for unique properties (1 to 1) new pair overwrites previous
+--
+--    or, relation can have a type conditioned on one of the sides
+--    e.g. for some X, X pos * is single-valued
+--
+--    this idea fits with RHS interpretation as 'least change to validate (give unique solution)'
+--
 
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import qualified Data.Map as M
@@ -37,6 +49,8 @@ import Parser
 import Rewrite
 
 import Web
+import Data.Aeson (FromJSON, ToJSON, decode, encode) -- todo delete
+import qualified Data.ByteString.Lazy.UTF8 as B8 (toString)
 
 -- Interface
 toWeb :: Int -> [(String, [(Int, Int)])] -> Web
@@ -57,9 +71,6 @@ testWeb = toWeb 8 $
 smallWeb = toWeb 3 $
   [ ("x", [(0, 2), (1, 2)])
   ]
-
--- 0 is the element of a unit object
-emptyWeb = Web 1 M.empty
 
 runRule :: Web -> Rule -> [(Context, Web)]
 runRule web (ops, effs) = 
@@ -133,7 +144,8 @@ main = do
       testCase web p10
     Left err -> putStrLn $ "error loading web:\n" ++ err
 
-  testEff "a x b ~ new c, c to a, c to 22"
+  -- unbound name 'c' creates new object
+  testEff "a x b ~ c to a, c to 22"
 
 -- whole file parsing
 chk = do

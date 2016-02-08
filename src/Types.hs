@@ -1,4 +1,7 @@
+{-# LANGUAGE DeriveGeneric #-} -- needed for json parsing
 module Types where
+import GHC.Generics (Generic)
+
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, fromJust)
 
@@ -7,18 +10,18 @@ import Data.Maybe (fromMaybe, fromJust)
 -- a Symbol gets bound; a Sym is a sort of literal
 type Symbol = String
 data Sym = Sym String
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
 instance Show Sym where
   show (Sym s) = '\'' : s
 
 data Ref = R Int
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
 data Lit
   = LInt Int
   | LSym Sym
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
 
 -- Node identifiers
 data Value
@@ -34,6 +37,19 @@ data Expr
   deriving (Show, Eq, Ord)
 
 type Edge = (Value, Value)
+
+-- VE, Arrow only used by JSON module
+data VE
+  = VELit Lit
+  | VESym Symbol
+  | VERef Ref
+  deriving (Show, Eq, Ord, Generic)
+
+data Arrow = Arrow
+  { source :: VE
+  , pred ::Symbol
+  , target :: VE }
+  deriving (Show, Generic)
 
 data Web = Web
   { count :: Int
@@ -110,6 +126,14 @@ data Program = Prog
   deriving (Show, Eq, Ord)
 
 -- Stuff
+e2ve :: Expr -> VE
+e2ve (ELit x) = VELit x
+e2ve (ESym x) = VESym x
+
+v2ve :: Value -> VE
+v2ve (VLit x) = VELit x
+v2ve (VRef x) = VERef x
+
 instance Show Ref where
   show (R i) = "#" ++ show i
 
@@ -122,12 +146,6 @@ vint (VLit (LInt i)) = i
 
 look k web = fromMaybe [] (M.lookup k web)
 look' k ctxt = fromJust (lookup k ctxt)
-
--- TODO delete
-insertList :: Eq k => k -> v -> [(k, v)] -> [(k, v)]
-insertList k v [] = [(k, v)]
-insertList k v ((n, _) : rs) | n == k = (k, v) : rs
-insertList k v (r : rs) = r : insertList k v rs
 
 addEdge :: Symbol -> Edge -> Web -> Web
 addEdge pred e (Web c env) = Web c (M.insertWith (++) pred [e] env)

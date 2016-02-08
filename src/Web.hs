@@ -3,7 +3,9 @@ module Web where
 import Types
 import Parse
 import Parser
-import qualified Data.Map as M (fromList, toList)
+import qualified Data.Map as M (fromList, toList, empty)
+
+emptyWeb = Web 0 M.empty
 
 arr_ = token
 
@@ -37,3 +39,10 @@ webFile_ = do
 loadWeb filename = do
   f <- readFile filename
   return $ runParser webFile_ f
+
+
+toRows :: Web -> [Arrow]
+toRows (Web {edges = emap}) = concatMap fixR . M.toList $ emap
+  where
+    fix p (a, b) = Arrow (v2ve a) p (v2ve b)
+    fixR (a, bs) = map (fix a) bs

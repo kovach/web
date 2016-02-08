@@ -2,7 +2,7 @@ module Interpreter where
 
 import qualified Data.Map as M
 import Data.Either (rights)
-import Data.List (foldl', sortOn, maximumBy, partition)
+import Data.List (foldl', sortOn, maximumBy, partition, nub)
 import Data.Maybe (mapMaybe)
 import Data.Function (on)
 import Control.Arrow (second)
@@ -44,7 +44,8 @@ getStep (Atom s pred t) web c =
     Just (base, prop) -> map takeOne $ foldStep [prop] newContexts
     Nothing -> newContexts
   where
-    newContexts = rights $ map (update s t c) $ look pred $ edges web
+    -- ? TODO is nub okay
+    newContexts = nub $ rights $ map (update s t c) $ look pred $ edges web
     -- NB this reverses the order of binding
     -- in the case of (a pred !b)
     takeOne (c, cs) = head cs ++ c
@@ -92,17 +93,18 @@ step w cs (OExtern (App sym args)) = concat $ mapMaybe (\c ->
 fresh :: Web -> (Ref, Web)
 fresh (Web c e) = (R c, Web (c+1) e)
 
-token2val :: (Context, Web) -> Expr -> (Value, (Context, Web))
-token2val p (ELit l) = (VLit l, p)
-token2val p@(ctxt, w0) (ESym name) =
+token2val :: (Context, Web) -> VE -> (Value, (Context, Web))
+token2val p (VELit l) = (VLit l, p)
+token2val p (VERef r) = (VRef r, p)
+token2val p@(ctxt, w0) (VESym name) =
   case lookup name ctxt of
     Just v -> (v, p)
     Nothing ->
       let (r, w1) = fresh w0
       in (VRef r, ((name, VRef r) : ctxt, w1))
 
-newEdge :: (Expr, Symbol, Expr) -> Context -> Web -> (Context, Web)
-newEdge (s, pred, t) c0 w0 =
+newEdge :: Arrow -> Context -> Web -> (Context, Web)
+newEdge (Arrow s pred t) c0 w0 =
   let
     (v1, p1) = token2val (c0, w0) s
     (v2, (c2, w2)) = token2val p1 t
@@ -122,6 +124,6 @@ stepEff :: (Context, Web) -> Effect -> (Context, Web)
 --stepEff (c, web) (EFresh name) =
 --  let (r, web') = fresh web
 --  in ((name, VRef r) : c, web')
-stepEff (c, web) (EAssert s p t) = newEdge (s,p,t) c web
+stepEff (c, web) (EAssert s p t) = newEdge (Arrow (e2ve s) p (e2ve t)) c web
 stepEff (c, web) (EDel name) | VRef r <- look' name c =
   (c, delNode r web)

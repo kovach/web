@@ -35,6 +35,7 @@ a <|> b = ParseEither $ \s ->
     Left _ -> runParser b s
     Right v -> return v
 
+ch' :: Char -> String -> Either Error (Char, String)
 ch' c (c' : cs) | c == c' = return (c, cs)
 ch' c _ = Left $ "expected char: " ++ [c]
 
