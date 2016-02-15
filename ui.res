@@ -13,8 +13,7 @@
 #   id fst x, id snd y, id sum z.
 
 text-editor elem text
-  ; elem type 'text-area, elem text text
-  ; elem type 'node-editor, elem text text
+  elem type 'text-area, elem text text
 .
 
 key-press e key
@@ -23,7 +22,7 @@ key-press e key
 # shift+enter on text element -> create new element labelled with text
 create-node e node
   @key-press e 'enter, e mod 'shift, e elem ed,
-  ed type 'node-editor, ed text t, ed pos p
+  ed text t, ed pos p
     ~ new node, node <- t, node pos p, del e, del ed.
 
 # lol

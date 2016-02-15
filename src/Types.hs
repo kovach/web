@@ -5,8 +5,6 @@ import GHC.Generics (Generic)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, fromJust)
 
--- Types
-
 -- a Symbol gets bound; a Sym is a sort of literal
 type Symbol = String
 data Sym = Sym String
@@ -23,42 +21,40 @@ data Lit
   | LSym Sym
   deriving (Show, Eq, Ord, Generic)
 
--- Node identifiers
-data Value
-  -- An entity, or "monad"
-  = VRef Ref
-  -- Typed data
-  | VLit Lit
-  deriving (Eq, Ord)
-
 data Expr
-  = ESym Symbol
-  | ELit Lit
-  deriving (Show, Eq, Ord)
-
-type Edge = (Value, Value)
-
--- VE, Arrow only used by JSON module
-data VE
-  = VELit Lit
-  | VESym Symbol
-  | VERef Ref
+  = ELit Lit
+  | ESym Symbol
+  | ERef Ref
   deriving (Show, Eq, Ord, Generic)
 
-data Arrow = Arrow
-  { source :: VE
-  , pred ::Symbol
-  , target :: VE }
-  deriving (Show, Generic)
+type Edge = (Expr, Expr)
 
-data Web = Web
+data Arrow = Arrow
+  { source :: Expr
+  , pred ::Symbol
+  , target :: Expr }
+  deriving (Eq, Ord, Show, Generic)
+
+data Application = App Symbol [Expr]
+  deriving (Show, Eq, Ord)
+
+data Effect
+    = Assert Arrow
+    | Del Symbol
+    | ENamed Application
+  deriving (Show, Eq, Ord)
+
+type Log = [Effect]
+
+data Graph = Graph
   { count :: Int
   , edges :: M.Map Symbol [Edge]
   }
   deriving (Show, Eq, Ord)
 
-data Node = NRoot Symbol | NSym Symbol
-          | NLit Lit
+data Node = NLit Lit
+          | NSym Symbol
+          | NRoot Symbol
           | NHole
   deriving (Show, Eq, Ord)
 
@@ -68,25 +64,10 @@ data Atom = Atom Node Symbol Node
 data Max = Max Symbol Symbol
   deriving (Show, Eq, Ord)
 
--- Base language
--- operations:
---   - match atom
---   - count
---   - max
---   - forget
--- effects:
---   - new entity
---   - new atom
---   - remove entity and all dependent atoms
 data Operation
-    = OMatch Atom -- | OF Fold
+    = OMatch Atom
     | OCount Symbol | OMax Max | ODrop Symbol
-    | OExtern Application
-  deriving (Show, Eq, Ord)
-
-data Effect
-    = EAssert Expr Symbol Expr
-    | EDel Symbol
+    | ONamed Application
   deriving (Show, Eq, Ord)
 
 type LHS = [Operation]
@@ -94,61 +75,26 @@ type RHS = [Effect]
 
 type Rule = (LHS, RHS)
 
-data Application = App Symbol [Expr]
-  deriving (Show, Eq, Ord)
+type Context = [(Symbol, Expr)]
 
-data Operation'
-    = OOperation Operation
-    | ONamed Application
-  deriving (Show, Eq, Ord)
+type Var = Expr -> Either String (Context -> Context)
 
--- TODO
-data Effect'
-    = EEffect Effect
-    | ENamed Symbol [Symbol]
-  deriving (Show, Eq, Ord)
-
-type Rule' = ([Operation'], [Effect])
-
-data VType = VTRef | VTInt
-
-type Context = [(Symbol, Value)]
-type TContext = [(Symbol, VType)]
-
-type Var = Value -> Either String (Context -> Context)
-
-type RuleContext = [(Symbol, (Rule', [Symbol]))]
+type RuleContext = [(Symbol, (Rule, [Symbol]))]
 
 data Program = Prog
   { p_defs :: RuleContext
-  , p_rule :: Rule'
+  , p_rule :: Rule
   }
   deriving (Show, Eq, Ord)
-
--- Stuff
-e2ve :: Expr -> VE
-e2ve (ELit x) = VELit x
-e2ve (ESym x) = VESym x
-
-v2ve :: Value -> VE
-v2ve (VLit x) = VELit x
-v2ve (VRef x) = VERef x
 
 instance Show Ref where
   show (R i) = "#" ++ show i
 
-instance Show Value where
-  show (VRef r) = show r
-  show (VLit (LInt i)) = show i
-  show (VLit (LSym s)) = show s
-
-vint (VLit (LInt i)) = i
-
 look k web = fromMaybe [] (M.lookup k web)
 look' k ctxt = fromJust (lookup k ctxt)
 
-addEdge :: Symbol -> Edge -> Web -> Web
-addEdge pred e (Web c env) = Web c (M.insertWith (++) pred [e] env)
+addEdge :: Symbol -> Edge -> Graph -> Graph
+addEdge pred e (Graph c env) = Graph c (M.insertWith (++) pred [e] env)
 
 -- TODO make monadic?
 class Named a where
@@ -171,20 +117,17 @@ instance Named Operation where
   nmap f (OCount s) = OCount (f s)
   nmap f (OMax m) = OMax (nmap f m)
   nmap f (ODrop s) = ODrop (f s)
-  nmap f (OExtern (App n args)) = OExtern (App (f n) (map (nmap f) args))
-
-instance Named Effect where
-  --nmap f (EFresh s) = EFresh (f s)
-  nmap f (EAssert a p b) = EAssert (nmap f a) p (nmap f b)
-  nmap f (EDel s) = EDel (f s)
-
-instance Named Operation' where
-  nmap f (OOperation op) = OOperation (nmap f op)
   nmap f (ONamed (App n args)) = ONamed (App (f n) (map (nmap f) args))
 
+instance Named Arrow where
+  nmap f (Arrow a p b) = Arrow (nmap f a) p (nmap f b)
+instance Named Effect where
+  nmap f (Assert a) = Assert (nmap f a)
+  nmap f (Del s) = Del (f s)
+  nmap f (ENamed (App n args)) = ENamed (App (f n) (map (nmap f) args))
 
 -- TODO
-instance Num Value where
-  fromInteger = VLit . LInt . fromIntegral
-  (VLit (LInt l)) + (VLit (LInt r)) = VLit (LInt (l+r))
-  negate (VLit (LInt l)) = (VLit (LInt $ -l))
+instance Num Expr where
+  fromInteger = ELit . LInt . fromIntegral
+  (ELit (LInt l)) + (ELit (LInt r)) = ELit (LInt (l+r))
+  negate (ELit (LInt l)) = (ELit (LInt $ -l))

@@ -29,7 +29,7 @@ instance ToJSON Arrow
 
 data ServerCommand
   = SCGet
-  | NewWeb [Arrow]
+  | SCNew [Arrow]
   deriving (Show, Generic)
 
 instance FromJSON ServerCommand
@@ -49,17 +49,17 @@ handler msg web = fromMaybe (return (Nothing, web)) command
         SCGet -> do
           putStrLn "get command"
           return (Just $ encode $ toRows web, web)
-        NewWeb arrows ->
+        SCNew arrows ->
           let (_, web') = foldl' ne ([], web) arrows
           -- TODO send increment in web (change newEdge to return added edge)
           in do
-            putStrLn "new arrow command"
+            putStrLn "put command"
             return (Nothing, web')
     ne (c, w) a = newEdge a c w
 
 main = do
   putStrLn "running"
-  mweb <- loadWeb "test.web"
+  mweb <- loadWeb "elements.web"
   case mweb of
     Right (web, "") -> do
       putStrLn "loaded web file"

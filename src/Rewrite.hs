@@ -15,22 +15,16 @@ freshen cs s = go 0 s
     go c n | not (n ++ show c `elem` cs) = n ++ show c
     go c n = go (c+1) n
 
-pnames NHole = []
-pnames (NSym s) = [s]
-pnames (NRoot s) = [s]
-
-names (OMatch (Atom l _ r)) = pnames l ++ pnames r
-names (OCount s) = [s]
-names (OMax (Max s1 s2)) = [s1, s2]
-names (ODrop s) = [s]
-
-updateContext :: Operation -> TContext -> TContext
--- this isn't really right
--- but it isn't used yet
-updateContext o@(OMatch _) c = zip (names o) (repeat VTRef) ++ c
-updateContext (OCount s) c = (s, VTInt) : c
-updateContext (OMax (Max _ d)) c = filter ((/= d) . fst) c
-updateContext (ODrop d) c = filter ((/= d) . fst) c
+--pnames NHole = []
+--pnames (NSym s) = [s]
+--pnames (NRoot s) = [s]
+--
+---- TODO delete?
+--names (OMatch (Atom l _ r)) = pnames l ++ pnames r
+--names (OCount s) = [s]
+--names (OMax (Max s1 s2)) = [s1, s2]
+--names (ODrop s) = [s]
+--names (ONamed (App _ es)) = concatMap enames es
 
 mstep :: (Monoid m, Monoid c)
       => (m -> Maybe (a, m))    -- "split"
@@ -51,40 +45,35 @@ mfix step a =
 osplit [] = Nothing
 osplit (v : vs) = Just (v, vs)
 
-type CMod = (Fn TContext, [Operation])
-ostep :: RuleContext -> CMod -> Operation' -> (CMod, [Operation'])
-ostep _ _ (OOperation op) = ((Fn $ updateContext op, [op]), [])
-ostep rc (Fn c, _) (ONamed app@(App name args)) | Nothing <- lookup name rc = ((mempty, [OExtern app]), [])
-ostep rc (Fn c, _) (ONamed (App name args)) =
-    let context = c []
-        ((pattern, []), params) = look' name rc
-    in (mempty, fix context params args pattern)
+type CMod = [Operation]
+ostep :: RuleContext -> CMod -> Operation -> (CMod, [Operation])
+ostep _ _ op@(OMatch _) = ([op], [])
+ostep _ _ op@(OCount _) = ([op], [])
+ostep _ _ op@(OMax _) = ([op], [])
+ostep _ _ op@(ODrop _ ) = ([op], [])
+ostep rc _ (ONamed app@(App name args)) | Nothing <- lookup name rc = ([ONamed app], [])
+ostep rc _ (ONamed (App name args)) =
+    let ((pattern, []), params) = look' name rc
+    in (mempty, fix params args pattern)
   where
-    fix context ps args pattern = map (psub (zip ps args)) pattern
+    fix ps args pattern = map (psub (zip ps args)) pattern
       where
         subE ctxt (ESym s) | Just e <- lookup s ctxt = e
         subE _ e = e
-        --psub :: Context -> Operation' -> Operation'
+
         psub ctxt (ONamed (App sym args)) = ONamed $ App sym (map (subE ctxt) args)
-        psub ctxt (OOperation o) = OOperation $
-          case o of
-            OMatch (Atom l pred r) -> OMatch $ Atom (sub l) pred (sub r)
-            -- TODO
-            o -> o
+        psub ctxt (OMatch (Atom l pred r)) = OMatch $ Atom (sub l) pred (sub r)
           where sub (NSym s) | Just v <- lookup s ctxt =
                   case v of
                     ELit l -> NLit l
                     ESym s -> NSym s
                 sub n = n
-        -- rename s =
-        --   case lookup s (zip ps args) of
-        --     Nothing -> freshen (map fst context) s
-        --     Just arg -> arg
+        psub ctxt op = op
 
 -- Main function
-normalize :: RuleContext -> Rule' -> Rule
+normalize :: RuleContext -> Rule -> Rule
 normalize rc (ops', effs) = (ops, effs)
   where
     (c, _) = mfix (mstep osplit (ostep rc)) (mempty, ops')
-    ops = snd $ c
+    ops = c
 

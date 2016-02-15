@@ -16,13 +16,16 @@ dropComments = unlines . concatMap fixLine . lines
     fixLine ('#' : _) = []
     fixLine x = [x]
 
-psym = char '\'' *> (token) -- TODO allow empty symbol ' ?
-lit_ = (LInt <$> int_) <|> (LSym <$> Sym <$> psym)
-pexpr = (ESym <$> token) <|> (ELit <$> lit_)
+symbol_ = token
+sym_ = char '\'' *> (token) -- TODO allow empty symbol ' ?
+lit_ = (LInt <$> int_) <|> (LSym <$> Sym <$> sym_)
 
-ppattern :: Parser [Operation]
-ppattern = tsep (char ',') poperation
-poperation = pcount <|> pmax <|> pdrop <|> patom 
+ref_ = char '#' *> (R <$> int_)
+
+expr_ :: Parser Expr
+expr_ = (ERef <$> ref_) <|> (ELit <$> lit_) <|> (ESym <$> symbol_)
+
+poperation = pcount <|> pmax <|> pdrop <|> patom <|> (ONamed <$> onamed_)
 pnode =
   (NSym <$> token) <|>
   (NLit <$> lit_) <|>
@@ -36,31 +39,25 @@ pdrop = string "drop" *> ws *> (ODrop <$> token)
 
 pfnname = token <|> ((:[]) <$> anyc "+*-/><")
 
-poperation' :: Parser Operation'
-poperation' = (ONamed <$> pnamed) <|> (OOperation <$> poperation)
-pnamed = do
+onamed_ = do
   char '@' <* wsl
   t <- pfnname <* wsl
-  args <- spaceSep pexpr
+  args <- spaceSep expr_
   return $ App t args
+
+arrow_ :: Parser Arrow
+arrow_ = Arrow <$> expr_ <* wsl <*> symbol_ <* wsl <*> expr_
 
 prhs :: Parser [Effect]
 prhs = tsep (char ',') peffect
 peffect = pdel <|> passert
 passert, pdel :: Parser Effect
---pfresh = string "new" *> wsl *> (EFresh <$> token)
-passert = EAssert <$> (pexpr <* wsl) <*> (token <* wsl) <*> pexpr
-pdel = string "del" *> wsl *> (EDel <$> token)
+passert = Assert <$> arrow_
+pdel = string "del" *> wsl *> (Del <$> token)
 
 prule :: Parser Rule
 prule = do
-  l <- ppattern
-  r <- (tok (char '~') *> prhs) <|> (whitespace *> return [])
-  return (l, r)
-
-prule' :: Parser Rule'
-prule' = do
-  l <- tsep (char ',') poperation'
+  l <- tsep (char ',') poperation
   r <- (tok (char '~') *> prhs) <|> (whitespace *> return [])
   return (l, r)
 
@@ -70,16 +67,16 @@ psig = do
   params <- spaceSep token
   return (name, params)
 
-pdef :: Parser (Symbol, (Rule', [Symbol]))
+pdef :: Parser (Symbol, (Rule, [Symbol]))
 pdef = do
   (name, ps) <- psig
   whitespace
-  rule <- prule'
+  rule <- prule
   return (name, (rule, ps))
 
 pfile :: Parser Program
 pfile = do
-  main <- prule'
+  main <- prule
   defs <- many pdef
   return $ Prog defs main
 

@@ -17,3 +17,6 @@ cabal.sandbox.config
 *.swp
 tags
 Setup.hs
+.ghci
+.diff_local
+static/underscore.js

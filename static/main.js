@@ -1,3 +1,5 @@
+"use strict";
+
 var init = function(fn, handler) {
   var sock = new WebSocket("ws://0.0.0.0:8080");
   sock.onopen = function(event) {
@@ -13,6 +15,6 @@ var init = function(fn, handler) {
       return;
     }
     console.log('got object: ', obj);
-    handler(obj);
+    handler(sock, obj);
   }
 }

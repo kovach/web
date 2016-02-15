@@ -14,8 +14,8 @@ data Sign = N | P
 
 type Mode = [Sign]
 
-type Binding = ([Value], [Symbol])
-type Fn = Web -> Binding -> [Context]
+type Binding = ([Expr], [Symbol])
+type Fn = Graph -> Binding -> [Context]
 type ModeFn = (Mode, Fn)
 type Extern = [ModeFn]
 
@@ -24,7 +24,7 @@ data ExtBind = ExtBind Extern [(Symbol, Symbol)]
 guard False = Nothing
 guard _ = return ()
 
-mkm _ (ELit l) = Left $ VLit l
+mkm _ (ELit l) = Left $ ELit l
 mkm ctxt (ESym arg) = case lookup arg ctxt of
   Nothing -> Right arg
   Just v -> Left v
@@ -44,7 +44,7 @@ matchSig sig (mode, fn) = do
   guard (signs sig == mode)
   return $ (partitionEithers sig, fn)
 
-matchExtern :: Web -> Context -> [Expr] -> Extern -> Maybe [Context]
+matchExtern :: Graph -> Context -> [Expr] -> Extern -> Maybe [Context]
 matchExtern w ctxt args cases = do
   (b, fn) <- takeFirst (matchSig (mkSig args ctxt)) cases
   return $ map (++ ctxt) $ fn w b
