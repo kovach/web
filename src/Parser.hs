@@ -25,17 +25,18 @@ ref_ = char '#' *> (R <$> int_)
 expr_ :: Parser Expr
 expr_ = (ERef <$> ref_) <|> (ELit <$> lit_) <|> (ESym <$> symbol_)
 
-poperation = pcount <|> pmax <|> pdrop <|> patom <|> (ONamed <$> onamed_)
-pnode =
-  (NSym <$> token) <|>
-  (NLit <$> lit_) <|>
-  (char '!' *> whitespace *> (NRoot <$> token)) <|>
-  (char '.' *> return NHole)
-patom, pcount, pmax, pdrop :: Parser Operation
-patom = OMatch <$> (Atom <$> (pnode <* ws) <*> (token <* ws) <*> pnode)
-pcount = string "count" *> ws *> (OCount <$> token)
-pmax = OMax <$> (Max <$> (token <* ws) <* (string "max" <* ws) <*> token)
-pdrop = string "drop" *> ws *> (ODrop <$> token)
+--TODO remove
+--poperation = pcount <|> pmax <|> pdrop <|> patom <|> (ONamed <$> onamed_)
+--pnode =
+--  (NSym <$> token) <|>
+--  (NLit <$> lit_) <|>
+--  (char '!' *> whitespace *> (NRoot <$> token)) <|>
+--  (char '.' *> return NHole)
+--patom, pcount, pmax, pdrop :: Parser Operation
+--patom = OMatch <$> (Atom <$> (pnode <* ws) <*> (token <* ws) <*> pnode)
+--pcount = string "count" *> ws *> (OCount <$> token)
+--pmax = OMax <$> (Max <$> (token <* ws) <* (string "max" <* ws) <*> token)
+--pdrop = string "drop" *> ws *> (ODrop <$> token)
 
 pfnname = token <|> ((:[]) <$> anyc "+*-/><")
 
@@ -48,17 +49,21 @@ onamed_ = do
 arrow_ :: Parser Arrow
 arrow_ = Arrow <$> expr_ <* wsl <*> symbol_ <* wsl <*> expr_
 
-prhs :: Parser [Effect]
-prhs = tsep (char ',') peffect
+pattern_ = tsep (char ',') peffect
+lhs_ :: Parser [Effect]
+lhs_ = pattern_
+rhs_ :: Parser [Effect]
+rhs_ = pattern_
+
 peffect = pdel <|> passert
 passert, pdel :: Parser Effect
 passert = Assert <$> arrow_
-pdel = string "del" *> wsl *> (Del <$> token)
+pdel = string "del" *> wsl *> (Del <$> expr_)
 
 prule :: Parser Rule
 prule = do
-  l <- tsep (char ',') poperation
-  r <- (tok (char '~') *> prhs) <|> (whitespace *> return [])
+  l <- lhs_
+  r <- (tok (char '~') *> rhs_) <|> (whitespace *> return [])
   return (l, r)
 
 psig :: Parser (Symbol, [Symbol])
@@ -67,11 +72,11 @@ psig = do
   params <- spaceSep token
   return (name, params)
 
-pdef :: Parser (Symbol, (Rule, [Symbol]))
+pdef :: Parser (Symbol, (Pattern, [Symbol]))
 pdef = do
   (name, ps) <- psig
   whitespace
-  rule <- prule
+  rule <- pattern_
   return (name, (rule, ps))
 
 pfile :: Parser Program

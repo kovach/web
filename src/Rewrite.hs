@@ -58,15 +58,18 @@ ostep rc _ (ONamed (App name args)) =
   where
     fix ps args pattern = map (psub (zip ps args)) pattern
       where
+        subE :: [(Symbol, Symbol)] -> Expr -> Symbol
         subE ctxt (ESym s) | Just e <- lookup s ctxt = e
-        subE _ e = e
+        subE ctxt e = freshen (map fst ctxt) e
 
+        e2n :: Expr -> Node
+        e2n (ELit l) = NLit l
+        e2n (ESym s) = NSym s
+
+        psub :: [(Symbol, Symbol)] -> Operation -> Operation
         psub ctxt (ONamed (App sym args)) = ONamed $ App sym (map (subE ctxt) args)
         psub ctxt (OMatch (Atom l pred r)) = OMatch $ Atom (sub l) pred (sub r)
-          where sub (NSym s) | Just v <- lookup s ctxt =
-                  case v of
-                    ELit l -> NLit l
-                    ESym s -> NSym s
+          where sub (NSym s) | Just v <- lookup s ctxt = e2n v
                 sub n = n
         psub ctxt op = op
 
@@ -74,6 +77,4 @@ ostep rc _ (ONamed (App name args)) =
 normalize :: RuleContext -> Rule -> Rule
 normalize rc (ops', effs) = (ops, effs)
   where
-    (c, _) = mfix (mstep osplit (ostep rc)) (mempty, ops')
-    ops = c
-
+    (ops, _) = mfix (mstep osplit (ostep rc)) (mempty, ops')

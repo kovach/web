@@ -6,11 +6,11 @@ import Parser
 import qualified Data.Map as M (fromList, toList, empty, insertWith)
 import Data.List (foldl')
 
-emptyGraph = Graph 0 M.empty
+emptyGraph = Graph M.empty
 
 -- sets count to be larger than any Ref present in web
-updateCount :: Graph -> Graph
-updateCount (Graph count edges) = Graph (1 + maximum (concatMap to pairs)) edges
+graphCount :: Graph -> Int
+graphCount (Graph edges) = 1 + maximum (concatMap to pairs)
   where
     pairs = concat . map snd $ (M.toList edges)
     to (a, b) = to' a ++ to' b
@@ -24,7 +24,7 @@ webFile_ = do
     return $ arr2g rows
 
 arr2g :: [Arrow] -> Graph
-arr2g xs = updateCount $ Graph 0 $ foldl' step M.empty xs
+arr2g xs = Graph $ foldl' step M.empty xs
   where
     step m (Arrow s p t) = M.insertWith (++) p [(s, t)] m
 
@@ -35,7 +35,7 @@ loadGraph filename = do
 
 
 g2arr :: Graph -> [Arrow]
-g2arr (Graph {edges = emap}) = concatMap fixR . M.toList $ emap
+g2arr (Graph emap) = concatMap fixR . M.toList $ emap
   where
     fix p (a, b) = Arrow a p b
     fixR (a, bs) = map (fix a) bs

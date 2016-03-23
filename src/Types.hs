@@ -27,8 +27,6 @@ data Expr
   | ERef Ref
   deriving (Show, Eq, Ord, Generic)
 
-type Edge = (Expr, Expr)
-
 data Arrow = Arrow
   { source :: Expr
   , pred ::Symbol
@@ -38,48 +36,42 @@ data Arrow = Arrow
 data Application = App Symbol [Expr]
   deriving (Show, Eq, Ord)
 
+-- TODO name type
+-- ? >/<
+-- combine ref into it
+-- context structure
+--  ? context = (Linear One, [Symbol, Val], [Ref, Val])
+
 data Effect
     = Assert Arrow
-    | Del Symbol
+    | Del Expr
     | ENamed Application
   deriving (Show, Eq, Ord)
 
-type Log = [Effect]
+data Log = Log Int [Effect]
 
-data Graph = Graph
-  { count :: Int
-  , edges :: M.Map Symbol [Edge]
-  }
-  deriving (Show, Eq, Ord)
-
-data Node = NLit Lit
-          | NSym Symbol
-          | NRoot Symbol
-          | NHole
-  deriving (Show, Eq, Ord)
-
-data Atom = Atom Node Symbol Node
+type Edge = (Expr, Expr)
+data Graph = Graph (M.Map Symbol [Edge])
   deriving (Show, Eq, Ord)
 
 data Max = Max Symbol Symbol
   deriving (Show, Eq, Ord)
 
-data Operation
-    = OMatch Atom
-    | OCount Symbol | OMax Max | ODrop Symbol
-    | ONamed Application
-  deriving (Show, Eq, Ord)
+--data Operation
+--    = OMatch Atom
+--    | OCount Symbol | OMax Max | ODrop Symbol
+--    | ONamed Application
+--  deriving (Show, Eq, Ord)
 
-type LHS = [Operation]
-type RHS = [Effect]
+type Pattern = [Effect]
 
-type Rule = (LHS, RHS)
+type Rule = (Pattern, Pattern)
 
 type Context = [(Symbol, Expr)]
 
 type Var = Expr -> Either String (Context -> Context)
 
-type RuleContext = [(Symbol, (Rule, [Symbol]))]
+type RuleContext = [(Symbol, (Pattern, [Symbol]))]
 
 data Program = Prog
   { p_defs :: RuleContext
@@ -93,37 +85,37 @@ instance Show Ref where
 look k web = fromMaybe [] (M.lookup k web)
 look' k ctxt = fromJust (lookup k ctxt)
 
-addEdge :: Symbol -> Edge -> Graph -> Graph
-addEdge pred e (Graph c env) = Graph c (M.insertWith (++) pred [e] env)
-
 -- TODO make monadic?
 class Named a where
   nmap :: (Symbol -> Symbol) -> a -> a
-instance Named Node where
-  nmap _ NHole = NHole
-  nmap f (NSym s) = NSym (f s)
-  nmap f (NRoot s) = NRoot (f s)
-  nmap f (NLit v) = NLit v
+--instance Named Node where
+--  nmap _ NHole = NHole
+--  nmap f (NSym s) = NSym (f s)
+--  nmap f (NRoot s) = NRoot (f s)
+--  nmap f (NLit v) = NLit v
 instance Named Expr where
   nmap f (ESym s) = ESym (f s)
   nmap f (ELit v) = ELit v
-instance Named Atom where
-  nmap f (Atom l p r) = Atom (nmap f l) p (nmap f r)
+--instance Named Atom where
+--  nmap f (Atom l p r) = Atom (nmap f l) p (nmap f r)
 instance Named Max where
   nmap f (Max a b) = Max (f a) (f b)
 
-instance Named Operation where
-  nmap f (OMatch atom) = OMatch (nmap f atom)
-  nmap f (OCount s) = OCount (f s)
-  nmap f (OMax m) = OMax (nmap f m)
-  nmap f (ODrop s) = ODrop (f s)
-  nmap f (ONamed (App n args)) = ONamed (App (f n) (map (nmap f) args))
+instance Named Application where
+  nmap f (App s es) = App s (map (nmap f) es)
+
+--instance Named Operation where
+--  nmap f (OMatch atom) = OMatch (nmap f atom)
+--  nmap f (OCount s) = OCount (f s)
+--  nmap f (OMax m) = OMax (nmap f m)
+--  nmap f (ODrop s) = ODrop (f s)
+--  nmap f (ONamed (App n args)) = ONamed (App (f n) (map (nmap f) args))
 
 instance Named Arrow where
   nmap f (Arrow a p b) = Arrow (nmap f a) p (nmap f b)
 instance Named Effect where
   nmap f (Assert a) = Assert (nmap f a)
-  nmap f (Del s) = Del (f s)
+  nmap f (Del s) = Del (nmap f s)
   nmap f (ENamed (App n args)) = ENamed (App (f n) (map (nmap f) args))
 
 -- TODO

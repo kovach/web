@@ -14,6 +14,31 @@
 --
 --    or, relation can have a type conditioned on one of the sides
 --    e.g. for some X, X pos * is single-valued
+--
+--  syntax:
+--    no ref, only Sym
+--
+--    del ok
+--    named ok
+--
+--    ? folds
+--  concrete free context:
+--    no Sym
+--
+--    del ok
+--    named ok
+--  fully reduced context:
+--    no Sym
+--
+--    del as deletion
+--    all names reduced
+--
+--  ? context
+--    name -> value
+--    to reduce Sym
+--  ? rule context
+--    name -> clauses
+--    to reduce Named
 
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
@@ -30,7 +55,8 @@ import Interpreter
 import Parse (runParser)
 import Parser
 
-import Rewrite
+--import Rewrite
+import Sub
 
 import Graph
 
@@ -99,31 +125,24 @@ testEff prog = do
     _ -> error "error"
 
 main = do
-  let p1 = "a x b, b y c, c z d"
-      p2 = "a id b, b id a"
-      p5 = "repo names a, count a"
-      -- "repo with most elements"
-      p6 = "repo names a, count a, repo max a"
-      -- "elements of largest repo"
-      p7 = "repo names a, count a, repo max a, repo names b, drop repo"
-      p8 = "!repo names a"
-      p8' = "repo names a"
+  let tests =
+        [ "a x b, b y c, c z d"
+        , "a id b, b id a"
+        --, "repo names a, count a"
+        --, "repo names a, count a, repo max a"
+        --, "repo names a, count a, repo max a, repo names b, drop repo"
+        --, "!repo names a"
+        , "repo names a"
 
-      p9 = "'B names a, 'B names b, a size as, b size bs, @> bs as, @+ as bs sum"
-      p10 = "'A names a, 'B names b, a size s, b size s"
+        , "'B names a, 'B names b, a size as, b size bs, @> bs as, @+ as bs sum"
+        , "'A names a, 'B names b, a size s, b size s"
+        ]
 
   mweb <- loadGraph "test.web"
+
   case mweb of
     Right (web, "") -> do
-      testCase web p1
-      --testCase p2
-      testCase web p5
-      testCase web p6
-      testCase web p7
-      --testCase p8'
-      testCase web p8
-      testCase web p9
-      testCase web p10
+      mapM_ (testCase web) tests
     Left err -> putStrLn $ "error loading web:\n" ++ err
 
   -- unbound name 'c' creates new object
