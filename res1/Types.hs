@@ -30,13 +30,13 @@ data SRef
   deriving (Eq, Ord, Show)
 
 data Graph = G
-  { props :: Map Ref (Rel, Ref)
-  , edges :: Map Rel (SRef, SRef)
+  { props :: Map Ref [(Rel, Ref)]
+  , edges :: Map Rel [(SRef, SRef)]
   }
 
 data Arrow = Arrow
   { source :: SRef
-  , pred   :: Rel
+  , predicate   :: Rel
   , target :: SRef }
   deriving (Eq, Ord, Show)
 
@@ -62,7 +62,7 @@ type Env = (Map Name (Pattern, [Name]), Graph)
 -- arrow s arr t:
 --   arr source s, arr target t
 -- product p a b:
---   @arrow p-fst p a, @arrow p-snd p b,
+--   @arrow p p-fst a, @arrow p p-snd b,
 --     [@arrow x x-fst a, @arrow x x-snd a]
 --     [@arrow x factor p,
 --      @comp factor p-fst x-fst,
@@ -70,3 +70,11 @@ type Env = (Map Name (Pattern, [Name]), Graph)
 --
 -- want forall and also forall-unique?
 -- want unique subpattern match?
+
+-- TODO ternary relations?
+g1 = G {props = M.empty,
+  edges = M.fromList $
+    [("source", [])
+    ,("target", [])
+    ]
+  }
