@@ -98,8 +98,8 @@ instance Named Expr where
   nmap f (ELit v) = ELit v
 --instance Named Atom where
 --  nmap f (Atom l p r) = Atom (nmap f l) p (nmap f r)
-instance Named Max where
-  nmap f (Max a b) = Max (f a) (f b)
+--instance Named Max where
+--  nmap f (Max a b) = Max (f a) (f b)
 
 instance Named Application where
   nmap f (App s es) = App s (map (nmap f) es)

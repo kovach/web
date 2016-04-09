@@ -1,3 +1,15 @@
+--TODO
+--repl
+--  load file
+--    - pattern definitions
+--    - list of system rules
+--  load data
+--  step forward/back?
+--
+--forall patterns
+--  add interpreter step
+--  add parser
+--
 module Interpreter where
 
 import Data.Map (Map)
@@ -134,7 +146,7 @@ canonicalize (Assert (Arrow s pred t)) p0 _ =
 canonicalize (Del e) p0 _ =
   let (v, p) = e2v p0 e in (Del v, p)
 canonicalize (ENamed app) p rc =
-  let (es, _) = normalize rc ([ENamed app], [])
+  let es = normalize rc [ENamed app]
   in error "canonicalize: enamed"
 
 -- RHS operation

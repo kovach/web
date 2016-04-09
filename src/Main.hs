@@ -57,8 +57,10 @@ import Parser
 
 --import Rewrite
 import Sub
+import Nameless
 
 import Graph
+
 
 -- Interface
 toGraph :: [(String, [(Int, Int)])] -> Graph
@@ -98,7 +100,7 @@ run :: Graph -> String -> Maybe [(Context, Graph)]
 run web prog = do
   --rule <- parseRule prog
   (rule', "") <- toMaybe $ runParser prule prog
-  let rule = normalize [] rule'
+  let rule = normalizeRule [] rule'
   return $ runRule web rule
 
 showCtxt :: Context -> Context
@@ -124,7 +126,7 @@ testEff prog = do
     Just cs -> mapM_ print cs
     _ -> error "error"
 
-main = do
+main0 = do
   let tests =
         [ "a x b, b y c, c z d"
         , "a id b, b id a"
@@ -149,9 +151,9 @@ main = do
   testEff "a x b ~ c to a, c to 22"
 
 -- whole file parsing
-chk = do
+main = do
   f <- readFile "prog.res"
   case parseFile f of
     Right (Prog defs main) ->
-      print $ normalize defs main
+      print $ normalizeRule defs main
     Left str -> putStrLn str

@@ -24,7 +24,7 @@ type DefaultNameMonad = State (Int, [Symbol], Shift)
 instance Fresh DefaultNameMonad where
   freshName n = do
     (c, ns, s) <- get
-    if not $ n `elem` ns
+    if False && (not $ n `elem` ns)
       then return n
       else do
         let n' = n ++ show c
@@ -57,13 +57,20 @@ shiftEff i (ENamed (App s args)) = do
   args <- mapM (shift i) args
   return $ ENamed (App s args)
 
-shiftClauses :: RuleContext -> Effect -> [Effect]
+shiftClauses :: Fresh m => RuleContext -> Effect -> m [Effect]
 shiftClauses rc (ENamed (App s args)) =
   case lookup s rc of
     Just (clauses, params) ->
-      runName $ mapM (shiftEff (zip params args)) clauses
-shiftClauses _ e = [e]
+      mapM (shiftEff (zip params args)) clauses
+shiftClauses _ e = return [e]
 
-normalize :: RuleContext -> Rule -> Rule
-normalize rc (l, r) = (fix l, fix r)
-  where fix = concatMap (shiftClauses rc)
+normalizeRule :: RuleContext -> Rule -> Rule
+normalizeRule rc (l, r) = (normalize rc l, normalize rc r)
+
+normalize :: RuleContext -> Pattern -> Pattern
+normalize rc p = runName $ fix p
+  where
+    step = fmap concat . mapM (shiftClauses rc)
+    fix x = do
+      x' <- step x
+      if x == x' then return x else fix x'

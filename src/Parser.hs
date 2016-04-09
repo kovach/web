@@ -55,7 +55,7 @@ lhs_ = pattern_
 rhs_ :: Parser [Effect]
 rhs_ = pattern_
 
-peffect = pdel <|> passert
+peffect = pdel <|> passert <|> (ENamed <$> onamed_)
 passert, pdel :: Parser Effect
 passert = Assert <$> arrow_
 pdel = string "del" *> wsl *> (Del <$> expr_)
@@ -77,6 +77,7 @@ pdef = do
   (name, ps) <- psig
   whitespace
   rule <- pattern_
+  whitespace; char '.'; whitespace
   return (name, (rule, ps))
 
 pfile :: Parser Program
@@ -90,4 +91,4 @@ parseFile str =
   case runParser pfile . dropComments $ str of
     Left e -> Left e
     Right (p, "") -> Right p
-    Right (_, str) -> Left $ "! unparsed input:\n" ++ str
+    Right (p, str) -> Left $ "! unparsed input:\n" ++ str ++ "\ngot:\n\n" ++ show p
