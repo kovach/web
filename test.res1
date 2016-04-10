@@ -1,0 +1,22 @@
+arrow s arr t [
+  arr source s, arr target t
+].
+
+comp m01 m12 m02 [
+  ! m01 target x, m12 source x,
+  comp m01 m01,
+  comp m12 m12,
+  comp m02 m02
+].
+
+product a b p [
+  @arrow p p-fst a, @arrow p p-snd b,
+  [@arrow x x-fst a, @arrow x x-snd b]
+  [@arrow x factor p,
+    @comp factor p-fst x-fst,
+    @comp factor p-snd x-snd]
+].
+
+[s source t]
+[@arrow s ar1 c, @arrow c ar2 a]
+[@arrow s arr t]

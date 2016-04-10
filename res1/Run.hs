@@ -6,6 +6,8 @@ import qualified Data.Map as M
 import Data.Maybe (fromJust, mapMaybe)
 import Control.Monad (foldM)
 
+import Debug.Trace (trace)
+
 emptyContext = M.empty
 
 empty [] = True

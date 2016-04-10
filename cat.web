@@ -1,0 +1,12 @@
+'pi1 source 'ab
+'pi1 target 'a
+'pi2 source 'ab
+'pi2 target 'b
+
+'f source 'T
+'f target 'a
+'g source 'T
+'g target 'b
+
+'h source 'T
+'h target 'ab

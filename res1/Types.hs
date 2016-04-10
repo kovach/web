@@ -29,10 +29,11 @@ data SRef
   | SSub SRef [Rel]
   deriving (Eq, Ord, Show)
 
-data Graph = G
-  { props :: Map Ref [(Rel, Ref)]
-  , edges :: Map Rel [(SRef, SRef)]
+data Graph = Graph
+  { edges :: Map Rel [(SRef, SRef)]
+  -- , props :: Map Ref [(Rel, Ref)]
   }
+  deriving (Eq, Ord, Show)
 
 data Arrow = Arrow
   { source :: SRef
@@ -55,6 +56,15 @@ type Pattern = [Clause]
 type Context = Map Name SRef
 type Env = (Map Name (Pattern, [Name]), Graph)
 
+data Binding = Binding Name [Name] Pattern
+  deriving (Eq, Ord, Show)
+
+data Program = Program
+  { bindings :: [Binding]
+  , commands :: [Pattern]
+  }
+  deriving (Eq, Ord, Show)
+
 -- example clauses/named-patterns
 --
 -- p fst a, p snd b, [x fst a, x fst b] [x map p]
@@ -71,13 +81,14 @@ type Env = (Map Name (Pattern, [Name]), Graph)
 -- want forall and also forall-unique?
 -- want unique subpattern match?
 
-g1 = G {props = M.empty,
-  edges = M.fromList $
-    [("source", [])
-    ,("target", [])
-    -- composition triples
-    ,("01", [])
-    ,("12", [])
-    ,("02", [])
-    ]
+g1 = Graph
+  { edges = M.fromList $
+      [("source", [])
+      ,("target", [])
+      -- composition triples
+      ,("01", [])
+      ,("12", [])
+      ,("02", [])
+      ]
+  -- , props = M.empty
   }
