@@ -17,7 +17,7 @@ closed :: Cursor -> Bool
 closed (_, []) = True
 closed _ = False
 
-many r cs = Just $ zip cs (repeat r)
+success r cs = Just $ zip cs (repeat r)
 
 walk :: Context -> Name -> Either Name SRef
 walk c name =
@@ -49,7 +49,7 @@ step (_, g) (c, Assert arr : r) =
   let es = safeLook (predicate arr) (edges g)
       lhs = [source arr, target arr]
       cs = mapMaybe (\(a,b) -> unify lhs [a,b] c) es
-  in many r cs
+  in success r cs
 step env (c, Del (SName n) : r) =
   case M.lookup n c of
     Nothing -> Nothing
@@ -61,7 +61,7 @@ step env@(ps, _) (c, Named (App name args) : r) =
       let cs = map (restrict_context params) (solve env pattern emptyContext)
           argVals c = map (fromJust . flip M.lookup c) params
           result = mapMaybe (\binding -> unify args (argVals binding) c) cs
-      in many r result
+      in success r result
 step env (c, All negative positive : r) =
   let solns = solve env negative c
   in if any empty $ map (solve env positive) solns

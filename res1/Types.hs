@@ -71,10 +71,13 @@ type Env = (Map Name (Pattern, [Name]), Graph)
 -- want forall and also forall-unique?
 -- want unique subpattern match?
 
--- TODO ternary relations?
 g1 = G {props = M.empty,
   edges = M.fromList $
     [("source", [])
     ,("target", [])
+    -- composition triples
+    ,("01", [])
+    ,("12", [])
+    ,("02", [])
     ]
   }
