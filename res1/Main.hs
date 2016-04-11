@@ -14,19 +14,26 @@ program2env p = foldr fix M.empty (bindings p)
     fix (Binding name params pattern) = M.insert name (pattern, params)
 
 printCommand env comm = do
-  print $ solve env comm emptyContext
+  putStrLn ""
+  print comm
+  mapM_ print $ solve env comm emptyContext
 
 chk = do
-  g <- dropComments <$> readFile "cat.web"
-  f <- dropComments <$> readFile "test.res1"
-  case (runParser program_ f, runParser graph_ g) of
-    (Right (p, ""), Right (g, "")) -> do
+  f <- readFile "test.res1"
+  g <- readFile "cat.web"
+  case (parseFile f, parseGraph g) of
+    (Right p, Right g) -> do
       let env = (program2env p, g)
-      putStrLn "bindings:" >> mapM_ print (bindings p)
-      putStrLn "\ncommands:" >> mapM_ print (commands p)
-      putStrLn "\ngraph:" >> print g
-      putStrLn "\nresults:"
+      putStrLn "bindings:"
+      print $ map bindingName (bindings p)
+      putStrLn $ "commands to run: " ++ show (length (commands p))
+      -- putStrLn "\ncommands:" >> mapM_ print (commands p)
+      -- putStrLn "\ngraph:" >> print g
+      putStrLn "\nCommand results:"
       mapM_ (printCommand env) (commands p)
-    (Right (_, str), _) -> putStrLn $ "Unparsed input:\n" ++ str
-    (Left err, _) -> putStrLn $ "Program parse error:\n" ++ err
-    --(_, Left err) -> putStrLn $ "Graph parse error:\n" ++ err
+    (Left err, _) -> ppErr err
+    (_, Left err) -> ppErr err
+
+ppErr :: SyntaxError -> IO ()
+ppErr (Incomplete str) = putStrLn $ "Incomplete parse:\n\n" ++ str
+ppErr (ParseError str) = putStrLn $ "Parse Error:\n" ++ str

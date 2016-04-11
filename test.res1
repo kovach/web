@@ -1,22 +1,34 @@
-arrow s arr t [
-  arr source s, arr target t
-].
+! a file consists of some number of definitions
+! followed by some number of commands to be run
 
-comp m01 m12 m02 [
-  ! m01 target x, m12 source x,
-  comp m01 m01,
-  comp m12 m12,
-  comp m02 m02
-].
+arrow s arrow t [
+  arrow .source s, arrow .target t
+]
 
-product a b p [
-  @arrow p p-fst a, @arrow p p-snd b,
-  [@arrow x x-fst a, @arrow x x-snd b]
-  [@arrow x factor p,
-    @comp factor p-fst x-fst,
-    @comp factor p-snd x-snd]
-].
+! fg = h (left to right composition convention)
+comp f g h [
+  comp .m01 f,
+  comp .m12 g,
+  comp .m02 h
+]
 
-[s source t]
-[@arrow s ar1 c, @arrow c ar2 a]
-[@arrow s arr t]
+! TODO make a [forall _] [unique _] clause so this definition is ok
+product a b p-fst p-snd [
+  arrow p p-fst a, arrow p p-snd b,
+  [arrow x x-fst a, arrow x x-snd b]
+  [arrow x factor p,
+    comp factor p-fst x-fst,
+    comp factor p-snd x-snd]
+]
+
+! [s source t]
+! [arrow s ar1 c, arrow c ar2 a]
+! [arrow s arr t]
+
+[arrow p p-fst a, arrow p p-snd b, del a b p]
+[product a b pi1 pi2]
+[comp 'id 'pi1 'pi1]
+[comp 'id 'pi2 'pi2]
+[comp 'h 'pi1 x]
+[comp 'h 'pi2 x]
+[arrow x fst 'a, arrow x snd 'b, arrow x factor 'ab]

@@ -36,9 +36,9 @@ data Graph = Graph
   deriving (Eq, Ord, Show)
 
 data Arrow = Arrow
-  { source :: SRef
+  { source      :: SRef
   , predicate   :: Rel
-  , target :: SRef }
+  , target      :: SRef }
   deriving (Eq, Ord, Show)
 
 data Application = App Name [SRef]
@@ -46,7 +46,7 @@ data Application = App Name [SRef]
 
 data Clause
     = Assert Arrow
-    | Del SRef
+    | Del [SRef]
     | Named Application
     | All Pattern Pattern
   deriving (Show, Eq, Ord)
@@ -58,6 +58,8 @@ type Env = (Map Name (Pattern, [Name]), Graph)
 
 data Binding = Binding Name [Name] Pattern
   deriving (Eq, Ord, Show)
+
+bindingName (Binding n _ _) = n
 
 data Program = Program
   { bindings :: [Binding]

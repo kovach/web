@@ -1,12 +1,31 @@
-'pi1 source 'ab
-'pi1 target 'a
-'pi2 source 'ab
-'pi2 target 'b
+'pi1 .source 'ab
+'pi1 .target 'a
+'pi2 .source 'ab
+'pi2 .target 'b
 
-'f source 'T
-'f target 'a
-'g source 'T
-'g target 'b
+'f .source 'T
+'f .target 'a
+'g .source 'T
+'g .target 'b
 
-'h source 'T
-'h target 'ab
+'h .source 'T
+'h .target 'ab
+
+'c1 .m01 'h
+'c1 .m12 'pi1
+'c1 .m02 'f
+
+'c2 .m01 'h
+'c2 .m12 'pi2
+'c2 .m02 'g
+
+'id .source 'ab
+'id .target 'ab
+
+'c_ab_pi1 .m01 'id
+'c_ab_pi1 .m12 'pi1
+'c_ab_pi1 .m02 'pi1
+
+'c_ab_pi2 .m01 'id
+'c_ab_pi2 .m12 'pi2
+'c_ab_pi2 .m02 'pi2

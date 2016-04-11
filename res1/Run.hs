@@ -52,10 +52,11 @@ step (_, g) (c, Assert arr : r) =
       lhs = [source arr, target arr]
       cs = mapMaybe (\(a,b) -> unify lhs [a,b] c) es
   in success r cs
-step env (c, Del (SName n) : r) =
-  case M.lookup n c of
-    Nothing -> Nothing
-    Just _ -> Just [(M.delete n c, r)]
+step env (c, Del refs : r) =
+    Just [(foldr delName c refs, r)]
+  where
+    delName (SName n) m = M.delete n m
+    delName _ m = error "del expects name arguments"
 step env@(ps, _) (c, Named (App name args) : r) =
   case M.lookup name ps of
     Nothing -> Nothing
