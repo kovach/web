@@ -4,10 +4,6 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, fromJust)
 
--- names
--- Name = String
--- NL = [String]
-
 type Name = String
 type Rel = String
 
@@ -31,7 +27,6 @@ data SRef
 
 data Graph = Graph
   { edges :: Map Rel [(SRef, SRef)]
-  -- , props :: Map Ref [(Rel, Ref)]
   }
   deriving (Eq, Ord, Show)
 
@@ -49,9 +44,11 @@ data Clause
     | Del [SRef]
     | Named Application
     | All Pattern Pattern
+    | SubPattern Pattern
   deriving (Show, Eq, Ord)
 
-type Pattern = [Clause]
+data Pattern = Pattern [Clause] | UniquePattern [Clause]
+  deriving (Show, Eq, Ord)
 
 type Context = Map Name SRef
 type Env = (Map Name (Pattern, [Name]), Graph)
@@ -82,15 +79,3 @@ data Program = Program
 --
 -- want forall and also forall-unique?
 -- want unique subpattern match?
-
-g1 = Graph
-  { edges = M.fromList $
-      [("source", [])
-      ,("target", [])
-      -- composition triples
-      ,("01", [])
-      ,("12", [])
-      ,("02", [])
-      ]
-  -- , props = M.empty
-  }

@@ -29,3 +29,6 @@
 'c_ab_pi2 .m01 'id
 'c_ab_pi2 .m12 'pi2
 'c_ab_pi2 .m02 'pi2
+
+'foo .source 's0
+'foo .target 't0

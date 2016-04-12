@@ -10,7 +10,9 @@ import Parse
 dropComments :: String -> String
 dropComments = unlines . map fixLine . lines
   where
-    fixLine = takeWhile (/= '!')
+    fixLine ('-' : '-' : _) = []
+    fixLine (x:xs) = x : fixLine xs
+    fixLine [] = []
 
 -- ------ --
 -- Syntax --
@@ -45,11 +47,15 @@ clause_ =
   <|> (string "del" *> ws *> (Del <$> many (token sref_)))
   <|> (Named <$> application_)
   <|> (All <$> token pattern_ <*> token pattern_)
+  <|> (SubPattern <$> token pattern_)
 
-pattern_ =
+clauses_ =
   token (char '[') *>
   (sepBy1 (token $ char ',') (clause_ <* flex))
   <* char ']'
+pattern_ =
+  (Pattern <$> clauses_) <|>
+  (UniquePattern <$> (char '!' *> clauses_))
 
 binding_ = Binding
   <$> token name_ <*> many1 (token name_)

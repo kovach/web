@@ -13,23 +13,24 @@ emptyContext = M.empty
 empty [] = True
 empty _ = False
 
-type Cursor = (Context, Pattern)
+type Cursor = (Context, [Clause])
 
 closed :: Cursor -> Bool
 closed (_, []) = True
 closed _ = False
 
-success r cs = Just $ zip cs (repeat r)
+success cs r = Just $ zip cs (repeat r)
 
-walk :: Context -> Name -> Either Name SRef
-walk c name =
+walk :: Context -> SRef -> Either Name SRef
+walk c (SName name) =
   case M.lookup name c of
-    Nothing -> Left name
-    Just (SName name') -> walk c name'
-    Just r -> Right r
+    Nothing          -> Left name
+    Just n@(SName _) -> walk c n
+    Just r           -> Right r
+walk _ x = Right x
 
 unify1 :: SRef -> SRef -> Context -> Maybe Context
-unify1 (SName n) y c =
+unify1 n@(SName _) y c =
   case walk c n of
     Left n -> Just $ M.insert n y c
     Right v -> unify1 v y c
@@ -45,31 +46,34 @@ safeLook k m =
     Nothing -> []
     Just es -> es
 
+-- TODO will we ever need access to r?
 step :: Env -> Cursor -> Maybe [Cursor]
 step env c | closed c = Nothing
 step (_, g) (c, Assert arr : r) =
   let es = safeLook (predicate arr) (edges g)
       lhs = [source arr, target arr]
       cs = mapMaybe (\(a,b) -> unify lhs [a,b] c) es
-  in success r cs
+  in success cs r
 step env (c, Del refs : r) =
     Just [(foldr delName c refs, r)]
   where
     delName (SName n) m = M.delete n m
     delName _ m = error "del expects name arguments"
-step env@(ps, _) (c, Named (App name args) : r) =
+step env@(ps, _) (ctxt, Named (App name args) : r) =
   case M.lookup name ps of
     Nothing -> Nothing
     Just (pattern, params) ->
-      let cs = map (restrict_context params) (solve env pattern emptyContext)
+      let bindings = solve env pattern emptyContext
           argVals c = map (fromJust . flip M.lookup c) params
-          result = mapMaybe (\binding -> unify args (argVals binding) c) cs
-      in success r result
+          result = mapMaybe (\binding -> unify args (argVals binding) ctxt) bindings
+      in success result r
 step env (c, All negative positive : r) =
-  let solns = solve env negative c
-  in if any empty $ map (solve env positive) solns
+  let matches = solve env negative c
+  in if any empty $ map (solve env positive) matches
      then Nothing
      else Just [(c, r)]
+step env (c, SubPattern p : r) =
+  success (solve env p c) r
 
 fix :: Env -> [Cursor] -> [Cursor]
 fix env cs =
@@ -79,9 +83,9 @@ fix env cs =
     fix' (_, Just cs) = fix env cs
 
 solve :: Env -> Pattern -> Context -> [Context]
-solve env p c =
+solve env (Pattern p) c =
   map fst . filter closed . fix env $ [(c, p)]
-
-restrict_context :: [Name] -> Context -> Context
-restrict_context names c =
-  M.filterWithKey (\k _ -> k `elem` names) c
+solve env (UniquePattern p) c =
+  case filter closed . fix env $ [(c, p)] of
+    [x] -> [fst x]
+    _ -> []
