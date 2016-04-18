@@ -26,8 +26,7 @@ data SRef
   deriving (Eq, Ord, Show)
 
 data Graph = Graph
-  { edges :: Map Rel [(SRef, SRef)]
-  }
+  { edges :: Map Rel [(SRef, SRef)] }
   deriving (Eq, Ord, Show)
 
 data Arrow = Arrow
@@ -47,35 +46,31 @@ data Clause
     | SubPattern Pattern
   deriving (Show, Eq, Ord)
 
-data Pattern = Pattern [Clause] | UniquePattern [Clause]
+data Pattern
+  = Pattern [Clause]
+  | UniquePattern [Clause]
+  deriving (Eq, Ord, Show)
+data AssertPattern
+  = AssertPattern [Clause] -- TODO move this?
   deriving (Show, Eq, Ord)
 
 type Context = Map Name SRef
-type Env = (Map Name (Pattern, [Name]), Graph)
+emptyContext = M.empty
+
+type Module = Map Name (Pattern, [Name])
+type Env = (Module, Graph)
 
 data Binding = Binding Name [Name] Pattern
+  deriving (Eq, Ord, Show)
+
+data Command
+  = CBinding Binding
+  | CQuery Pattern
+  | CAssert Pattern AssertPattern
   deriving (Eq, Ord, Show)
 
 bindingName (Binding n _ _) = n
 
 data Program = Program
-  { bindings :: [Binding]
-  , commands :: [Pattern]
-  }
+  { commands :: [Command] }
   deriving (Eq, Ord, Show)
-
--- example clauses/named-patterns
---
--- p fst a, p snd b, [x fst a, x fst b] [x map p]
---
--- arrow s arr t:
---   arr source s, arr target t
--- product p a b:
---   @arrow p p-fst a, @arrow p p-snd b,
---     [@arrow x x-fst a, @arrow x x-snd a]
---     [@arrow x factor p,
---      @comp factor p-fst x-fst,
---      @comp factor p-snd x-snd]
---
--- want forall and also forall-unique?
--- want unique subpattern match?

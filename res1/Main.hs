@@ -5,32 +5,35 @@ import Types
 import Run
 import Parse
 import Parser
+import Graph
 
 main = chk
 
 program2env :: Program -> Map Name (Pattern, [Name])
-program2env p = foldr fix M.empty (bindings p)
+program2env p = foldr fix M.empty (commands p)
   where
-    fix (Binding name params pattern) = M.insert name (pattern, params)
+    fix (CBinding (Binding name params pattern)) =
+      M.insert name (pattern, params)
+    fix _ = id
 
-printCommand env comm = do
-  putStrLn ""
-  print comm
-  mapM_ print $ solve env comm emptyContext
+--printCommand :: Env -> Command -> IO ()
+--printCommand env (CBinding (Binding name _ _)) =
+--  putStrLn $ "Binding " ++ name
+--printCommand env (CQuery pattern) = do
+--  putStrLn ""
+--  print pattern
+--  mapM_ print $ solve env pattern emptyContext
 
 chk = do
-  f <- readFile "test.res1"
+  f <- readFile "category.res"
   g <- readFile "cat.web"
   case (parseFile f, parseGraph g) of
     (Right p, Right g) -> do
-      let env = (program2env p, g)
-      putStrLn "bindings:"
-      print $ map bindingName (bindings p)
-      putStrLn $ "commands to run: " ++ show (length (commands p))
-      -- putStrLn "\ncommands:" >> mapM_ print (commands p)
-      -- putStrLn "\ngraph:" >> print g
-      putStrLn "\nCommand results:"
-      mapM_ (printCommand env) (commands p)
+      let (msgs, s) = execProgram (Graph M.empty) p
+      mapM_ print (commands p)
+      putStrLn "~~~~~~~~~~~~~~~~~~~~~"
+      mapM_ putStrLn msgs
+      print $ s_graph s
     (Left err, _) -> ppErr err
     (_, Left err) -> ppErr err
 

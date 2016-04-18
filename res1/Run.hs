@@ -1,6 +1,5 @@
 module Run where
 
-import Types
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (fromJust, mapMaybe)
@@ -8,7 +7,8 @@ import Control.Monad (foldM)
 
 import Debug.Trace (trace)
 
-emptyContext = M.empty
+import Types
+import Graph
 
 empty [] = True
 empty _ = False
@@ -89,3 +89,61 @@ solve env (UniquePattern p) c =
   case filter closed . fix env $ [(c, p)] of
     [x] -> [fst x]
     _ -> []
+
+-- Assertion --
+assertVal :: SRef -> State -> (SRef, State)
+assertVal n s =
+  case walk (s_ctxt s) n of
+    Left n ->
+      let (r, c') = fresh s
+      in (Ref r, bind n (Ref r) c')
+    Right v -> (v, s)
+
+assert :: State -> Clause -> State
+assert s0 (Assert arr) =
+  let
+  (s, s1) = assertVal (source arr) s0
+  (t, s2) = assertVal (target arr) s1
+  in addArr (Arrow s (predicate arr) t) s2
+assert s0 (Named (App name args)) =
+  case M.lookup name (fst s0) of
+    Nothing -> error $ "missing definition: " ++ name
+    Just (UniquePattern pattern, params) ->
+      error "not implemented"
+    Just (Pattern pattern, params) ->
+      let c' = foldr (uncurry bind) s0 (zip params args)
+      in solveAssert c' pattern
+assert s0 (All _ _) =
+  error "not implemented"
+
+
+-- TODO unique asserts
+solveAssert :: State -> [Clause] -> State
+solveAssert s cs = foldl assert s cs
+
+assertCommand :: State -> Pattern -> AssertPattern -> State
+assertCommand s0 negative (AssertPattern positive) =
+  let env = s_env s0
+      ctxt = s_ctxt s0
+      matches = solve env negative ctxt
+      s1 = foldl (\s c -> solveAssert (m_ctxt c s) positive)
+                 s0 matches
+  in m_ctxt ctxt s1
+
+commandStep :: State -> Command -> ([String], State)
+commandStep s0 (CQuery q) =
+  (showResult $ solve (s_env s0) q emptyContext, s0)
+  where
+    showResult [] = ["[]"]
+    showResult xs = map show xs
+commandStep s0 (CBinding b@(Binding name _ _)) =
+  (["Binding " ++ name], bindP b s0)
+commandStep s0 (CAssert p a) = ([], assertCommand s0 p a)
+
+execProgram :: Graph -> Program -> ([String], State)
+execProgram g p =
+  let s0 = (M.empty, (emptyContext, 0, g))
+      step (acc, s0) c =
+        let (msgs, s1) = commandStep s0 c in (reverse msgs ++ acc, s1)
+      (msgs, s1) = foldl step ([], s0) (commands p)
+  in (reverse msgs, s1)

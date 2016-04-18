@@ -6,11 +6,12 @@ import Data.Char (isUpper, toLower)
 
 import Types
 import Parse
+import Graph
 
 dropComments :: String -> String
 dropComments = unlines . map fixLine . lines
   where
-    fixLine ('-' : '-' : _) = []
+    fixLine ('#' : _) = []
     fixLine (x:xs) = x : fixLine xs
     fixLine [] = []
 
@@ -51,19 +52,27 @@ clause_ =
 
 clauses_ =
   token (char '[') *>
-  (sepBy1 (token $ char ',') (clause_ <* flex))
+  (sepBy (token $ char ',') (clause_ <* flex))
   <* char ']'
+
 pattern_ =
-  (Pattern <$> clauses_) <|>
-  (UniquePattern <$> (char '!' *> clauses_))
+  (Pattern <$> clauses_)
+  <|> (UniquePattern <$> (char '!' *> clauses_))
+
+assertPattern_ =
+  (AssertPattern <$> (clauses_))
 
 binding_ = Binding
   <$> token name_ <*> many1 (token name_)
   <*> token pattern_
 
+command_ =
+  (CBinding <$> binding_)
+  <|> (CQuery <$> pattern_)
+  <|> (token (char '~') *> (CAssert <$> token pattern_ <*> token assertPattern_))
+
 program_ = flex *> (Program
-  <$> token (many (binding_ )) -- <* token (char '.')))
-  <*> token (many (token pattern_)))
+  <$> token (many (token command_)))
 
 -- TODO need better error reporting
 data SyntaxError = ParseError String | Incomplete String
