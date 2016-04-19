@@ -50,6 +50,7 @@ data Pattern
   = Pattern [Clause]
   | UniquePattern [Clause]
   deriving (Eq, Ord, Show)
+
 data AssertPattern
   = AssertPattern [Clause] -- TODO move this?
   deriving (Show, Eq, Ord)
@@ -66,7 +67,7 @@ data Binding = Binding Name [Name] Pattern
 data Command
   = CBinding Binding
   | CQuery Pattern
-  | CAssert Pattern AssertPattern
+  | CAssert AssertPattern
   deriving (Eq, Ord, Show)
 
 bindingName (Binding n _ _) = n

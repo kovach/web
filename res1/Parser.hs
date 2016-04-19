@@ -69,7 +69,7 @@ binding_ = Binding
 command_ =
   (CBinding <$> binding_)
   <|> (CQuery <$> pattern_)
-  <|> (token (char '~') *> (CAssert <$> token pattern_ <*> token assertPattern_))
+  <|> (token (char '~') *> (CAssert <$> token assertPattern_))
 
 program_ = flex *> (Program
   <$> token (many (token command_)))

@@ -110,25 +110,25 @@ assert s0 (Named (App name args)) =
     Nothing -> error $ "missing definition: " ++ name
     Just (UniquePattern pattern, params) ->
       error "not implemented"
-    Just (Pattern pattern, params) ->
+    Just (p@(Pattern _), params) ->
       let c' = foldr (uncurry bind) s0 (zip params args)
-      in solveAssert c' pattern
-assert s0 (All _ _) =
-  error "not implemented"
-
-
--- TODO unique asserts
-solveAssert :: State -> [Clause] -> State
-solveAssert s cs = foldl assert s cs
-
-assertCommand :: State -> Pattern -> AssertPattern -> State
-assertCommand s0 negative (AssertPattern positive) =
+      in solveAssert c' p
+assert s0 (All negative positive) =
   let env = s_env s0
       ctxt = s_ctxt s0
       matches = solve env negative ctxt
       s1 = foldl (\s c -> solveAssert (m_ctxt c s) positive)
                  s0 matches
   in m_ctxt ctxt s1
+
+-- TODO unique asserts
+solveAssert :: State -> Pattern -> State
+solveAssert s (Pattern cs) = foldl assert s cs
+solveAssert _ (UniquePattern _) = error "not implemented"
+
+assertCommand :: State -> AssertPattern -> State
+assertCommand s0 (AssertPattern positive) =
+  solveAssert s0 (Pattern positive)
 
 commandStep :: State -> Command -> ([String], State)
 commandStep s0 (CQuery q) =
@@ -138,7 +138,7 @@ commandStep s0 (CQuery q) =
     showResult xs = map show xs
 commandStep s0 (CBinding b@(Binding name _ _)) =
   (["Binding " ++ name], bindP b s0)
-commandStep s0 (CAssert p a) = ([], assertCommand s0 p a)
+commandStep s0 (CAssert a) = ([], assertCommand s0 a)
 
 execProgram :: Graph -> Program -> ([String], State)
 execProgram g p =

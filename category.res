@@ -13,9 +13,10 @@ comp f g h [
   comp.m02 h
 ]
 
-# ~ [] [obj x, obj y, arrow x f y]
+# ~[obj x, obj y, arrow x f y]
 
-~ [] [a .foo b, arrow a b c, obj x y]
+~[a .foo b, arrow a b c]
+~[[a .foo b] [b .bar a]]
 
 # [arrow a b c]
-# ~ [arrow u f v, arrow v g w] [arrow u h w, comp f g h]
+# ~[[arrow u f v, arrow v g w] [arrow u h w, comp f g h]]
