@@ -1,5 +1,5 @@
-obj cat x [
-  cat .object x
+obj x [
+  'cat .object x
 ]
 
 arrow s arrow t [
@@ -13,10 +13,14 @@ comp f g h [
   comp.m02 h
 ]
 
-# ~[obj x, obj y, arrow x f y]
+#~[obj x, obj y, obj z, arrow x f y, arrow y g z, comp f g h]
+~[obj x, obj y, arrow x f y]
 
-~[a .foo b, arrow a b c]
-~[[a .foo b] [b .bar a]]
+#[arrow a f b, arrow a id a, comp id f f]
+# make id_l
+#~[[obj a] [arrow a id a, [arrow a f b] [comp id f f]]]
+# make id_r
+#~[[obj a] [arrow a id a, [arrow b f a] [comp f id f]]]
 
-# [arrow a b c]
-# ~[[arrow u f v, arrow v g w] [arrow u h w, comp f g h]]
+
+[arrow s f t]

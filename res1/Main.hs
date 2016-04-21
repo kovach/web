@@ -5,7 +5,11 @@ import Types
 import Run
 import Parse
 import Parser
-import Graph
+import Graph as G
+
+-- TODO
+import Data.Functor.Identity
+import Control.Applicative
 
 main = chk
 
@@ -33,7 +37,9 @@ chk = do
       mapM_ print (commands p)
       putStrLn "~~~~~~~~~~~~~~~~~~~~~"
       mapM_ putStrLn msgs
-      print $ s_graph s
+      putStrLn "~~~~~~~~~~~~~~~~~~~~~"
+      mapM_ print . M.toList . edges $ G.get G.s_graph s
+      print $ G.get G.s_ctr s
     (Left err, _) -> ppErr err
     (_, Left err) -> ppErr err
 

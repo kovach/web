@@ -8,7 +8,10 @@ import Control.Monad (foldM)
 import Debug.Trace (trace)
 
 import Types
-import Graph
+import qualified Context as C
+
+import Graph (State, (.~), (.<))
+import qualified Graph as G
 
 empty [] = True
 empty _ = False
@@ -21,18 +24,10 @@ closed _ = False
 
 success cs r = Just $ zip cs (repeat r)
 
-walk :: Context -> SRef -> Either Name SRef
-walk c (SName name) =
-  case M.lookup name c of
-    Nothing          -> Left name
-    Just n@(SName _) -> walk c n
-    Just r           -> Right r
-walk _ x = Right x
-
 unify1 :: SRef -> SRef -> Context -> Maybe Context
 unify1 n@(SName _) y c =
-  case walk c n of
-    Left n -> Just $ M.insert n y c
+  case C.walk c n of
+    Left n -> Just $ C.insert n y c
     Right v -> unify1 v y c
 unify1 (SSub _ _) _ _ = error "sub not implemented"
 unify1 x y c = if y == x then Just c else Nothing
@@ -57,14 +52,14 @@ step (_, g) (c, Assert arr : r) =
 step env (c, Del refs : r) =
     Just [(foldr delName c refs, r)]
   where
-    delName (SName n) m = M.delete n m
+    delName (SName n) m = C.delete n m
     delName _ m = error "del expects name arguments"
 step env@(ps, _) (ctxt, Named (App name args) : r) =
   case M.lookup name ps of
     Nothing -> Nothing
     Just (pattern, params) ->
-      let bindings = solve env pattern emptyContext
-          argVals c = map (fromJust . flip M.lookup c) params
+      let bindings = solve env pattern C.empty
+          argVals c = map (fromJust . flip C.lookup c) params
           result = mapMaybe (\binding -> unify args (argVals binding) ctxt) bindings
       in success result r
 step env (c, All negative positive : r) =
@@ -91,58 +86,74 @@ solve env (UniquePattern p) c =
     _ -> []
 
 -- Assertion --
+-- TODO make fresh monadic
 assertVal :: SRef -> State -> (SRef, State)
 assertVal n s =
-  case walk (s_ctxt s) n of
-    Left n ->
-      let (r, c') = fresh s
-      in (Ref r, bind n (Ref r) c')
+  let ctxt = (G.get G.s_ctxt s) in
+  case C.walk ctxt n of
+    Left _ ->
+      let (r, s1) = G.fresh s
+          (val, ctxt') = C.walkOn ctxt n (Ref r)
+      in (val, G.set G.s_ctxt ctxt' s1)
     Right v -> (v, s)
 
 assert :: State -> Clause -> State
 assert s0 (Assert arr) =
   let
-  (s, s1) = assertVal (source arr) s0
-  (t, s2) = assertVal (target arr) s1
-  in addArr (Arrow s (predicate arr) t) s2
+    (s, s1) = assertVal (source arr) s0
+    (t, s2) = assertVal (target arr) s1
+    s3 = G.arrow (Arrow s (predicate arr) t) s2
+  in s3
 assert s0 (Named (App name args)) =
-  case M.lookup name (fst s0) of
+  case M.lookup name (G.get G.s_mod s0) of
     Nothing -> error $ "missing definition: " ++ name
     Just (UniquePattern pattern, params) ->
       error "not implemented"
+    Just (_, params) | length params /= length args ->
+      error $ "argument mismatch: " ++ name
     Just (p@(Pattern _), params) ->
-      let c' = foldr (uncurry bind) s0 (zip params args)
-      in solveAssert c' p
+      let s1 = pushFrame s0
+          s2 = foldr (uncurry G.bind) s1 (zip params args)
+      in popFrame $ solveAssert s2 p
 assert s0 (All negative positive) =
-  let env = s_env s0
-      ctxt = s_ctxt s0
+  let env = G.getEnv s0
+      ctxt = G.get G.s_ctxt s0
       matches = solve env negative ctxt
-      s1 = foldl (\s c -> solveAssert (m_ctxt c s) positive)
+
+      s1 = foldl (\s c -> solveAssert (G.set G.s_ctxt c s) positive)
                  s0 matches
-  in m_ctxt ctxt s1
+  in G.set G.s_ctxt ctxt s1
 
 -- TODO unique asserts
 solveAssert :: State -> Pattern -> State
 solveAssert s (Pattern cs) = foldl assert s cs
 solveAssert _ (UniquePattern _) = error "not implemented"
 
+pushFrame = G.on G.s_ctxt C.push
+popFrame = G.on G.s_ctxt C.pop
+resetContext = G.set G.s_ctxt C.empty
+
 assertCommand :: State -> AssertPattern -> State
 assertCommand s0 (AssertPattern positive) =
   solveAssert s0 (Pattern positive)
 
 commandStep :: State -> Command -> ([String], State)
-commandStep s0 (CQuery q) =
-  (showResult $ solve (s_env s0) q emptyContext, s0)
+commandStep s0 c =
+  let (msgs, s1) = commandStep' (resetContext s0) c
+  in (msgs, s1)
+
+commandStep' s0 (CQuery q) =
+  (showResult $ solve (G.getEnv s0) q C.empty, s0)
   where
     showResult [] = ["[]"]
     showResult xs = map show xs
-commandStep s0 (CBinding b@(Binding name _ _)) =
-  (["Binding " ++ name], bindP b s0)
-commandStep s0 (CAssert a) = ([], assertCommand s0 a)
+commandStep' s0 (CBinding b@(Binding name _ _)) =
+  (["Binding " ++ name], G.bindMod b s0)
+commandStep' s0 (CAssert a) = ([], assertCommand s0 a)
 
 execProgram :: Graph -> Program -> ([String], State)
 execProgram g p =
-  let s0 = (M.empty, (emptyContext, 0, g))
+  let s0 = G.graphState g
       step (acc, s0) c =
         let (msgs, s1) = commandStep s0 c in (reverse msgs ++ acc, s1)
       (msgs, s1) = foldl step ([], s0) (commands p)

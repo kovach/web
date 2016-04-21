@@ -55,8 +55,7 @@ data AssertPattern
   = AssertPattern [Clause] -- TODO move this?
   deriving (Show, Eq, Ord)
 
-type Context = Map Name SRef
-emptyContext = M.empty
+type Context = [Map Name SRef]
 
 type Module = Map Name (Pattern, [Name])
 type Env = (Module, Graph)
