@@ -20,43 +20,58 @@ fixChar c = [c]
 
 alphaNum = all isAlphaNum
 
-tokenize :: [String] -> ([Token], [String])
-tokenize ("[" : ts) = ([OpenFrame None], ts)
-tokenize ("." : ts) = ([Dot], ts)
-tokenize ("-" : ">" : ts) = ([Implies], ts)
-tokenize ("`" : t : ts) | alphaNum t = ([Arrow None t], ts)
-tokenize ("+" : t : ts) | alphaNum t = ([Arrow Posit t], ts)
-tokenize ("-" : t : ts) | alphaNum t = ([Arrow Erase t], ts)
-tokenize ("!" : t : ts) | alphaNum t = ([Arrow Unique t], ts)
-tokenize ("+" : "[" : ts) = ([OpenFrame Posit], ts)
-tokenize ("-" : "[" : ts) = ([OpenFrame Erase], ts)
-tokenize ("!" : "[" : ts) = ([OpenFrame Unique], ts)
-tokenize ("]" : ts) = ([CloseFrame], ts)
-tokenize ("|" : ts) = ([Choice], ts)
-tokenize ("@" : t : ts) | alphaNum t = ([Apply t], ts)
-tokenize ("'" : t : ts) | alphaNum t = ([Symbol t], ts)
-tokenize (t : ts) | alphaNum t = ([Variable t], ts)
-tokenize ts = ([], ts)
+tokenize :: String -> Maybe Token
+tokenize "[" = Just $ OpenFrame'
+tokenize "." = Just $ Dot
+tokenize ">" = Just $ Requires
+tokenize "`" = Just $ Modifier' None
+tokenize "+" = Just $ Modifier' Posit
+tokenize "-" = Just $ Modifier' Erase
+tokenize "!" = Just $ Modifier' Unique
+tokenize "]" = Just $ CloseFrame
+tokenize "|" = Just $ Choice
+tokenize "@" = Just $ Apply'
+tokenize "'" = Just $ Symbol'
+tokenize t | alphaNum t = Just $ Variable t
+tokenize _ = Nothing
+
+tail' [] = []
+tail' x = tail x
+
+reduce :: [Token] -> Maybe [Token]
+reduce (Variable v : Modifier' m : s) = Just $ Arrow m v : s
+reduce (OpenFrame' : Modifier' m : s) = Just $ OpenFrame m : s
+reduce (OpenFrame' : s) = Just $ OpenFrame None : s
+reduce (Variable v : Apply' : s) = Just $ Apply v : s
+reduce (Variable v : Symbol' : s) = Just $ Symbol v : s
+reduce t | hasMod (tail' t) = Nothing
+  where hasMod [] = False
+        hasMod (Modifier' _ : _) = True
+        hasMod (_ : t) = hasMod t
+reduce t | Apply' `elem` (tail' t) = Nothing
+reduce t | Symbol' `elem` (tail' t) = Nothing
+reduce s = Just s
 
 tokens :: String -> [Token]
 tokens s =
     let ts = words . concatMap fixChar $ s
-    in reduce ts
+    in step [] ts
   where
-    reduce [] = []
-    reduce ts = case tokenize ts of
-      ([], _) -> [Error ts]
-      (t, ts') -> t ++ reduce ts'
+    step acc [] = reverse acc
+    step acc (t:ts) = case tokenize t of
+      Nothing -> reverse $ Error ts : acc
+      Just t -> case reduce (t:acc) of
+        Just a' -> step a' ts
+        Nothing -> reverse $ Error ts : t:acc
 
 ex0 = ""
 ex1 = "a c ``f"
-ex2 = "a b @p [a c +arr]"
+ex2 = "a b @p [a c `a1 a c +a2]"
 exercises =
   [ ex0
   , ex1
   , ex2
   ]
- 
 
 main = do
   mapM_ (print . tokens) exercises

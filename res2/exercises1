@@ -1,0 +1,6 @@
+
+a b `r | a b `p
+a b `p b a `q
+[a b `r | a b `p | a b `t] a b `q
+[a b `r > a b `false]
+a b `p a b +r [a b `p > a b `r]
